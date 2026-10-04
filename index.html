@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="FIRMAMENT GCS：基于 Web Serial 与 MAVLink 的 FMT 飞控地面站" />
+    <title>FIRMAMENT GCS · 飞控地面站</title>
+    <!-- 预着色：在 JS/CSS 落地之前就把明暗写进 <html>。地面站常在夜间机库使用，
+         少了这一段，夜间模式每次刷新都会先白闪一下（既刺眼也会让人以为界面出错）。
+         这里必须用与 src/custom/useTheme.js 相同的键与同样的取值，逻辑保持极简。 -->
+    <script>
+      (function () {
+        var KEY = 'dsh.theme'
+        var mode = 'auto'
+        try {
+          mode = localStorage.getItem(KEY) || localStorage.getItem('app-theme') || 'auto'
+        } catch (e) { /* 禁用存储就按默认 */ }
+        if (mode !== 'light' && mode !== 'dark') {
+          try {
+            mode = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+          } catch (e) { mode = 'light' }
+        }
+        var root = document.documentElement
+        var dark = mode === 'dark'
+        root.setAttribute('data-theme', dark ? 'dark' : 'light')
+        root.setAttribute('data-theme-mode', localStorage.getItem(KEY) || 'auto')
+        if (dark) root.classList.add('dark')
+        root.style.colorScheme = dark ? 'dark light' : 'light dark'
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,529 @@
+/* =============================================
+   Element Plus 适配层 element-plus.css
+   ---------------------------------------------
+   为什么单独一层：界面里九成控件是 EP 组件，它们只认 --el-* 变量。
+   以前 style.css 只在暗色块里映射了三五个 --el-*，其余组件（表格、输入框、
+   菜单、卡片）在夜间模式下仍是日间配色——这就是"切了夜模式没效果"的根因。
+   现在两套模式都完整映射，并把色阶用 color-mix 派生，改主色只改一处。
+   ---------------------------------------------
+   加载顺序（main.js）：EP 基础样式 → EP 暗色变量 → 本文件 → style.css。
+   本文件必须排在 EP 之后，否则 :root 同名变量被 EP 顶掉。
+   ============================================= */
+
+/* ─── 一、公共派生规则 ─── */
+:root {
+  /* 焦点环：键盘可达性的命根子。走 --dsh-accent-deep——日间是加深的一档（5.45:1），
+     夜间就是品牌蓝本体；业主选定的是"文字强调用 66ccff"，可 2px 半透明亮蓝压白底约等于没有。 */
+  --dsh-ring: 0 0 0 2px color-mix(in srgb, var(--dsh-accent-deep) 45%, transparent);
+  --dsh-ring-strong: 0 0 0 3px color-mix(in srgb, var(--dsh-accent-deep) 60%, transparent);
+}
+
+/* ─── 二、日间映射 ─── */
+:root,
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --el-color-primary: var(--dsh-accent-ink);
+  --el-color-success: var(--dsh-success);
+  --el-color-warning: var(--dsh-warning);
+  --el-color-danger: var(--dsh-danger);
+  --el-color-error: var(--dsh-danger);
+  --el-color-info: var(--dsh-info);
+
+  /* 色阶一律派生，不手数十六进制：light-N = 主色混 N*10% 的白色 */
+  --el-color-primary-light-3: color-mix(in srgb, var(--el-color-primary) 70%, var(--dsh-mix));
+  --el-color-primary-light-5: color-mix(in srgb, var(--el-color-primary) 50%, var(--dsh-mix));
+  --el-color-primary-light-7: color-mix(in srgb, var(--el-color-primary) 30%, var(--dsh-mix));
+  --el-color-primary-light-8: color-mix(in srgb, var(--el-color-primary) 20%, var(--dsh-mix));
+  --el-color-primary-light-9: color-mix(in srgb, var(--el-color-primary) 10%, var(--dsh-mix));
+  --el-color-primary-dark-2: color-mix(in srgb, var(--el-color-primary) 80%, #000);
+  --el-color-success-light-3: color-mix(in srgb, var(--el-color-success) 70%, var(--dsh-mix));
+  --el-color-success-light-5: color-mix(in srgb, var(--el-color-success) 50%, var(--dsh-mix));
+  --el-color-success-light-7: color-mix(in srgb, var(--el-color-success) 30%, var(--dsh-mix));
+  --el-color-success-light-8: color-mix(in srgb, var(--el-color-success) 20%, var(--dsh-mix));
+  --el-color-success-light-9: color-mix(in srgb, var(--el-color-success) 10%, var(--dsh-mix));
+  --el-color-success-dark-2: color-mix(in srgb, var(--el-color-success) 80%, #000);
+  --el-color-warning-light-3: color-mix(in srgb, var(--el-color-warning) 70%, var(--dsh-mix));
+  --el-color-warning-light-5: color-mix(in srgb, var(--el-color-warning) 50%, var(--dsh-mix));
+  --el-color-warning-light-7: color-mix(in srgb, var(--el-color-warning) 30%, var(--dsh-mix));
+  --el-color-warning-light-8: color-mix(in srgb, var(--el-color-warning) 20%, var(--dsh-mix));
+  --el-color-warning-light-9: color-mix(in srgb, var(--el-color-warning) 10%, var(--dsh-mix));
+  --el-color-warning-dark-2: color-mix(in srgb, var(--el-color-warning) 80%, #000);
+  --el-color-danger-light-3: color-mix(in srgb, var(--el-color-danger) 70%, var(--dsh-mix));
+  --el-color-danger-light-5: color-mix(in srgb, var(--el-color-danger) 50%, var(--dsh-mix));
+  --el-color-danger-light-7: color-mix(in srgb, var(--el-color-danger) 30%, var(--dsh-mix));
+  --el-color-danger-light-8: color-mix(in srgb, var(--el-color-danger) 20%, var(--dsh-mix));
+  --el-color-danger-light-9: color-mix(in srgb, var(--el-color-danger) 10%, var(--dsh-mix));
+  --el-color-danger-dark-2: color-mix(in srgb, var(--el-color-danger) 80%, #000);
+  --el-color-error-light-3: color-mix(in srgb, var(--el-color-danger) 70%, var(--dsh-mix));
+  --el-color-error-light-5: color-mix(in srgb, var(--el-color-danger) 50%, var(--dsh-mix));
+  --el-color-error-light-7: color-mix(in srgb, var(--el-color-danger) 30%, var(--dsh-mix));
+  --el-color-error-light-8: color-mix(in srgb, var(--el-color-danger) 20%, var(--dsh-mix));
+  --el-color-error-light-9: color-mix(in srgb, var(--el-color-danger) 10%, var(--dsh-mix));
+  --el-color-error-dark-2: color-mix(in srgb, var(--el-color-danger) 80%, #000);
+  --el-color-info-light-3: color-mix(in srgb, var(--el-color-info) 70%, var(--dsh-mix));
+  --el-color-info-light-5: color-mix(in srgb, var(--el-color-info) 50%, var(--dsh-mix));
+  --el-color-info-light-7: color-mix(in srgb, var(--el-color-info) 30%, var(--dsh-mix));
+  --el-color-info-light-8: color-mix(in srgb, var(--el-color-info) 20%, var(--dsh-mix));
+  --el-color-info-light-9: color-mix(in srgb, var(--el-color-info) 10%, var(--dsh-mix));
+  --el-color-info-dark-2: color-mix(in srgb, var(--el-color-info) 80%, #000);
+
+  --el-bg-color: var(--dsh-surface);
+  --el-bg-color-page: var(--dsh-canvas);
+  --el-bg-color-overlay: var(--dsh-surface);
+  --el-fill-color-blank: var(--dsh-surface);
+  --el-fill-color-light: var(--dsh-surface-2);
+  --el-fill-color-lighter: var(--dsh-surface-2);
+  --el-fill-color: var(--dsh-surface-3);
+  --el-fill-color-dark: var(--dsh-active);
+  --el-fill-color-darker: var(--dsh-border);
+
+  --el-text-color-primary: var(--dsh-text-1);
+  --el-text-color-regular: var(--dsh-text-2);
+  --el-text-color-secondary: var(--dsh-text-3);
+  --el-text-color-placeholder: var(--dsh-placeholder);
+  --el-text-color-disabled: #b2bac6;
+
+  --el-border-color: var(--dsh-border);
+  --el-border-color-light: var(--dsh-border);
+  --el-border-color-lighter: var(--dsh-divider);
+  --el-border-color-extra-light: var(--dsh-divider);
+  --el-border-color-dark: var(--dsh-border-strong);
+  --el-border-color-hover: var(--dsh-border-strong);
+
+  --el-mask-color: rgba(255, 255, 255, 0.8);
+  --el-box-shadow-light: var(--dsh-shadow-sm);
+  --el-box-shadow-lighter: var(--dsh-shadow-sm);
+  --el-box-shadow: var(--dsh-shadow);
+
+  --el-disabled-bg-color: var(--dsh-surface-2);
+  --el-disabled-text-color: #b2bac6;
+  --el-disabled-border-color: var(--dsh-border);
+}
+
+/* ─── 三、夜间映射（选择器权重压过 EP 的 html.dark） ─── */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --el-color-primary: var(--dsh-accent);
+  --el-color-success: var(--dsh-success);
+  --el-color-warning: var(--dsh-warning);
+  --el-color-danger: var(--dsh-danger);
+  --el-color-error: var(--dsh-danger);
+  --el-color-info: var(--dsh-info);
+  --el-color-white: var(--dsh-surface); /* EP 拿它当"最亮面"，夜间必须降级成面板色 */
+
+  --el-bg-color: var(--dsh-surface);
+  --el-bg-color-page: var(--dsh-canvas);
+  --el-bg-color-overlay: var(--dsh-surface-2);
+  --el-fill-color-blank: var(--dsh-surface);
+  --el-fill-color-light: var(--dsh-surface-2);
+  --el-fill-color-lighter: #18212f;
+  --el-fill-color: var(--dsh-surface-3);
+  --el-fill-color-dark: var(--dsh-active);
+  --el-fill-color-darker: var(--dsh-border-strong);
+
+  --el-text-color-primary: var(--dsh-text-1);
+  --el-text-color-regular: var(--dsh-text-2);
+  --el-text-color-secondary: var(--dsh-text-3);
+  --el-text-color-placeholder: var(--dsh-placeholder);
+  --el-text-color-disabled: #59667a;
+
+  --el-border-color: var(--dsh-border);
+  --el-border-color-light: var(--dsh-border);
+  --el-border-color-lighter: var(--dsh-divider);
+  --el-border-color-extra-light: var(--dsh-divider);
+  --el-border-color-dark: var(--dsh-border-strong);
+  --el-border-color-hover: var(--dsh-border-strong);
+
+  --el-mask-color: rgba(15, 21, 32, 0.75);
+  --el-box-shadow-light: var(--dsh-shadow-sm);
+  --el-box-shadow-lighter: var(--dsh-shadow-sm);
+  --el-box-shadow: var(--dsh-shadow);
+
+  --el-disabled-bg-color: var(--dsh-surface-2);
+  --el-disabled-text-color: #59667a;
+  --el-disabled-border-color: var(--dsh-border);
+}
+
+/* ─── 四、尺寸与圆角（紧凑密度：控件 28px、正文 13px、圆角 6px） ─── */
+:root {
+  --el-font-size-extra-small: var(--dsh-font-xs);
+  --el-font-size-small: var(--dsh-font-sm);
+  --el-font-size-base: var(--dsh-font);
+  --el-font-size-medium: var(--dsh-font-md);
+  --el-font-size-large: var(--dsh-font-lg);
+  --el-font-size-extra-large: var(--dsh-font-xl);
+  --el-font-family: var(--dsh-font-family);
+  --el-component-size: var(--dsh-row-h);
+  --el-component-size-small: var(--dsh-row-h-sm);
+  --el-component-size-large: 34px;
+  --el-border-radius-base: var(--dsh-radius);
+  --el-border-radius-small: var(--dsh-radius-sm);
+  --el-border-radius-round: var(--dsh-radius);
+  --el-messagebox-width: 440px;
+}
+
+/* ─── 五、组件级微调：只为"现场看得清、一屏装得多" ─── */
+
+/* 表格：行高压缩 + 表头弱底 + 数字列等宽，参数表一屏多看十几行 */
+.el-table {
+  --el-table-border-color: var(--dsh-divider);
+  --el-table-header-bg-color: var(--dsh-surface-2);
+  --el-table-row-hover-bg-color: var(--dsh-hover);
+  --el-table-current-row-bg-color: var(--dsh-accent-soft);
+  border-radius: var(--dsh-radius-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.el-table .el-table__cell {
+  padding: 5px 0;
+}
+
+.el-table .cell {
+  padding: 0 8px;
+  line-height: 20px;
+}
+
+.el-table th.el-table__cell .cell {
+  font-weight: 600;
+  font-size: var(--dsh-font-sm);
+  color: var(--dsh-text-3);
+  letter-spacing: 0.02em;
+}
+
+.el-table__footer-wrapper,
+.el-table__header-wrapper {
+  background-color: var(--dsh-surface);
+}
+
+/* 密集表禁用斑马纹；不设置全局 sticky，EP 的 max-height/height 将表头留在滚动表体之外。 */
+.el-table--striped .el-table__body tr.el-table__row--striped > td.el-table__cell {
+  background: var(--el-table-tr-bg-color, var(--dsh-surface));
+}
+.el-table .el-table__body tr.hover-row > td.el-table__cell,
+.el-table .el-table__body tr:hover > td.el-table__cell {
+  background: var(--dsh-hover);
+}
+.el-table .el-table__body tr.current-row > td.el-table__cell {
+  background: var(--dsh-accent-soft);
+}
+/* 卡片：小圆角 + 细边 + 只在悬停时给阴影，夜间靠边框分层 */
+.el-card {
+  --el-card-border-color: var(--dsh-border);
+  --el-card-border-radius: var(--dsh-radius);
+  --el-card-padding: var(--dsh-gap);
+  box-shadow: none !important;
+  transition: border-color var(--dsh-transition), background-color var(--dsh-transition);
+}
+
+.el-card__header {
+  padding: var(--dsh-gap-sm) var(--dsh-gap);
+  border-bottom: 1px solid var(--dsh-divider);
+  font-size: var(--dsh-font-md);
+  font-weight: 600;
+  background: var(--dsh-surface-2);
+  border-radius: calc(var(--dsh-radius) - 1px) calc(var(--dsh-radius) - 1px) 0 0;
+}
+
+.el-card__header .el-card__title,
+.el-card__header > div {
+  font-size: var(--dsh-font-md);
+  line-height: 1.4;
+}
+
+.el-card__body {
+  padding: var(--dsh-gap);
+}
+
+/* 按钮/输入：字号统一 13，禁用态不再一片灰糊 */
+.el-button {
+  font-weight: 500;
+  border-radius: var(--dsh-radius);
+}
+
+.el-button:not(.el-button--primary):not([class*='el-button--success']):not([class*='el-button--warning']):not([class*='el-button--danger']):not([class*='el-button--info']) {
+  background-color: var(--dsh-surface);
+}
+
+.el-input__wrapper,
+.el-select__wrapper,
+.el-textarea__inner {
+  border-radius: var(--dsh-radius);
+  background-color: var(--color-bg-input);
+}
+
+/* 主按钮：两个模式都是品牌蓝 #66ccff 大面积上身（问答选定）。
+   字色走 --dsh-ink-on-fill：日间白（1.80:1，业主明确要这个观感，契约里记了真实比值）、
+   夜间近墨 #061826（9.98:1）。想整体救回可读性只要把这三处换成 --dsh-ink-on-accent，令牌层不用动。
+   2026-07-31 业主进一步选定"文字类强调也走 66ccff"，于是日间 --el-color-primary 就是 #66ccff：
+   链接、页签当前项、下拉选中项、分页当前页、待保存标记全部跟着这一条翻，按钮不再单独破例——
+   只有焦点环与聚焦描边留在 --dsh-accent-deep（§一、§六），那是可用性的地板，不属于观感。 */
+.el-button--primary {
+  --el-button-bg-color: var(--dsh-accent);
+  --el-button-border-color: var(--dsh-accent);
+  --el-button-text-color: var(--dsh-ink-on-fill);
+  --el-button-hover-bg-color: var(--dsh-accent-hi);
+  --el-button-hover-border-color: var(--dsh-accent-hi);
+  --el-button-hover-text-color: var(--dsh-ink-on-fill);
+  --el-button-active-bg-color: var(--dsh-accent-lo);
+  --el-button-active-border-color: var(--dsh-accent-lo);
+  --el-button-active-text-color: var(--dsh-ink-on-fill);
+  --el-button-disabled-bg-color: color-mix(in srgb, var(--dsh-accent) 20%, var(--dsh-surface));
+  --el-button-disabled-border-color: color-mix(in srgb, var(--dsh-accent) 20%, var(--dsh-surface));
+  --el-button-disabled-text-color: var(--dsh-placeholder);
+  font-weight: 600;
+}
+
+/* 夜间功能色填充变亮（#5dc98f / #e9b949 / #ff7b72），白字会掉到 2:1 上下，整排翻近墨。
+   日间这几个填充本来就够深（白字 4.5~5:1），不动。 */
+:root[data-theme='dark'] .el-button--success,
+:root[data-theme='dark'] .el-button--warning,
+:root[data-theme='dark'] .el-button--danger,
+:root[data-theme='dark'] .el-button--error {
+  --el-button-text-color: var(--dsh-ink-on-accent);
+  --el-button-hover-text-color: var(--dsh-ink-on-accent);
+  --el-button-active-text-color: var(--dsh-ink-on-accent);
+}
+
+
+/* 日间悬停不往更浅的 #9adcff 走（白字压它只剩 1.55:1），改成往深一档：
+   #66ccff → #2f9ede（2.71）→ 再压深（约 3.4），悬停/按下在同一条白字决定里尽量分得开。 */
+:root[data-theme='light'] .el-button--primary {
+  --el-button-hover-bg-color: var(--dsh-accent-lo);
+  --el-button-hover-border-color: var(--dsh-accent-lo);
+  --el-button-active-bg-color: color-mix(in srgb, var(--dsh-accent-lo) 80%, #000);
+  --el-button-active-border-color: color-mix(in srgb, var(--dsh-accent-lo) 80%, #000);
+}
+
+/* 警告按钮（待保存、解锁前提示这一排）：#a1620a 深琥珀够黑但闷得像旧 UI，
+   问答里定的是"更亮"→ 填充换 --dsh-warning-fill（日间 #f0b429 / 夜间 #e9b949）。
+   注意只动填充：黄色当文字用的地方（告警条、待保存计数、alert 图标）仍吃 --dsh-warning，
+   亮黄压白底 1.86:1，当字用等于没写。 */
+.el-button--warning {
+  --el-button-bg-color: var(--dsh-warning-fill);
+  --el-button-border-color: var(--dsh-warning-fill);
+  --el-button-text-color: var(--dsh-ink-on-fill);
+  --el-button-hover-bg-color: color-mix(in srgb, var(--dsh-warning-fill) 90%, #000);
+  --el-button-hover-border-color: color-mix(in srgb, var(--dsh-warning-fill) 90%, #000);
+  --el-button-hover-text-color: var(--dsh-ink-on-fill);
+  --el-button-active-bg-color: color-mix(in srgb, var(--dsh-warning-fill) 78%, #000);
+  --el-button-active-border-color: color-mix(in srgb, var(--dsh-warning-fill) 78%, #000);
+  --el-button-active-text-color: var(--dsh-ink-on-fill);
+  font-weight: 600;
+}
+
+/* ── 主色当"填充/图形"的点位一律直吃 #66ccff（问答选定：开关·滑块·进度条·勾选·单选·页签条）──
+   这些是色块不是字，深蓝看着像换了个品牌；两个模式同一个值，所以不需要暗色分支。 */
+.el-switch.is-checked .el-switch__core {
+  background-color: var(--dsh-accent);
+  border-color: var(--dsh-accent);
+}
+.el-slider__bar { background-color: var(--dsh-accent); }
+.el-slider__button { border-color: var(--dsh-accent); }
+.el-progress-bar__inner { background-color: var(--dsh-accent); }
+.el-checkbox__input.is-checked .el-checkbox__inner,
+.el-checkbox__input.is-indeterminate .el-checkbox__inner {
+  background-color: var(--dsh-accent);
+  border-color: var(--dsh-accent);
+}
+.el-radio__input.is-checked .el-radio__inner {
+  background-color: var(--dsh-accent);
+  border-color: var(--dsh-accent);
+}
+.el-tabs__active-bar { background-color: var(--dsh-accent); }
+.el-loading-spinner .path { stroke: var(--dsh-accent); }
+/* 按钮式单选（电池节数这类分段选择）：EP 把选中档的字色写死成白，
+   日间是"亮蓝底 + 白字"（业主选定那条），夜间必须翻成近墨，所以走 --dsh-ink-on-fill。 */
+.el-radio-button__original-radio:checked + .el-radio-button__inner {
+  background-color: var(--dsh-accent);
+  border-color: var(--dsh-accent);
+  color: var(--dsh-ink-on-fill);
+}
+
+/* 选中行：底色已经是 --dsh-accent-soft（浅蓝），日间没有"整行发亮"那种线索，
+   补一条 2px 结构色左边条，滚动到中途也认得出刚才点的是哪一行。 */
+.el-table__body tr.current-row > td.el-table__cell:first-child {
+  box-shadow: inset 2px 0 0 var(--dsh-accent-deep);
+}
+
+/* plain / link / text 形态不在这条管辖内：底色是主色浅阶或透明，文字走 --el-color-primary——
+   日间它已经是 #66ccff（业主选定），所以这一层不需要再单独覆写它。 */
+
+/* effect="dark" 的标签同理：亮底配深字（未解锁、炸机级提示靠这个抢眼球） */
+:root[data-theme='dark'] .el-tag.el-tag--dark {
+  --el-tag-text-color: var(--dsh-ink-on-accent);
+  font-weight: 600;
+}
+
+.el-tag {
+  border-radius: var(--dsh-radius-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 表单：标签与控件贴近，减少竖向浪费 */
+.el-form-item {
+  margin-bottom: 12px;
+}
+
+.el-form-item__label {
+  font-size: var(--dsh-font);
+  color: var(--dsh-text-3);
+  padding-right: 8px;
+}
+
+/* 标签页：夜间下划线用主色，激活文字加深一档 */
+.el-tabs__item {
+  font-size: var(--dsh-font);
+  height: 32px;
+  line-height: 32px;
+}
+
+.el-tabs__nav-wrap::after {
+  background-color: var(--dsh-divider);
+}
+
+/* 弹窗与提示：遮罩在夜间更暗，正文不再被照亮 */
+.el-dialog {
+  border-radius: var(--dsh-radius-lg);
+  background-color: var(--dsh-surface);
+  box-shadow: var(--dsh-shadow-lg);
+}
+
+.el-dialog__header {
+  padding: 12px 14px 8px;
+  margin-right: 0;
+  border-bottom: 1px solid var(--dsh-divider);
+}
+
+.el-dialog__title {
+  font-size: var(--dsh-font-md);
+  font-weight: 600;
+}
+
+.el-dialog__body {
+  padding: 12px 14px;
+  font-size: var(--dsh-font);
+  color: var(--dsh-text-2);
+}
+
+.el-dialog__footer {
+  padding: 8px 14px 12px;
+}
+
+.el-message,
+.el-message-box {
+  border-color: var(--dsh-border);
+  background-color: var(--dsh-surface-2);
+}
+
+.el-alert {
+  border-radius: var(--dsh-radius);
+  padding: 8px 10px;
+}
+
+.el-popper {
+  background-color: var(--el-bg-color-overlay) !important;
+  border-color: var(--dsh-border) !important;
+  box-shadow: var(--dsh-shadow) !important;
+}
+
+.el-popper.is-dark,
+.el-popper.is-dark .el-popper__arrow::before {
+  background-color: var(--dsh-surface-3) !important;
+  color: var(--dsh-text-1) !important;
+  border-color: var(--dsh-border-strong) !important;
+}
+
+/* 空/加载/进度：状态色跟着令牌走，不再出现 EP 默认那套绿红 */
+.el-empty__description p {
+  color: var(--dsh-text-3);
+  font-size: var(--dsh-font);
+}
+
+.el-progress__text {
+  font-size: var(--dsh-font-sm) !important;
+  color: var(--dsh-text-2);
+}
+
+.el-descriptions__label {
+  color: var(--dsh-text-3);
+}
+
+.el-descriptions__content {
+  color: var(--dsh-text-1);
+}
+
+.el-divider__text {
+  background-color: var(--dsh-surface);
+  color: var(--dsh-text-3);
+  font-size: var(--dsh-font-sm);
+}
+
+/* ─── 六、键盘可达性：把焦点环还回来 ─── */
+/* 原 style.css 里 *:focus{outline:none} 把焦点框整个抹掉了：
+   现场常用键盘在参数表里跳转，看不到焦点就是"不知道光标在哪"。 */
+:where(a, button, input, textarea, select, [tabindex], .el-button, .el-input__inner,
+  .el-select__wrapper, .el-checkbox__original, .el-radio__original, .el-tabs__item,
+  .el-switch__input, .el-menu-item, .dsh-nav-item):focus-visible {
+  outline: none;
+  box-shadow: var(--dsh-ring);
+  border-radius: var(--dsh-radius-sm);
+}
+
+.el-input__wrapper.is-focus,
+.el-select__wrapper.is-focused,
+.el-textarea__inner:focus {
+  box-shadow: 0 0 0 1px var(--dsh-accent-deep) inset;
+}
+
+/* 选中文本、原生滚动条、输入框自动填充也一并接管，避免夜间出现亮白块 */
+::selection {
+  background-color: color-mix(in srgb, var(--dsh-accent) 40%, transparent);
+  color: var(--dsh-text-1);
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--dsh-text-1);
+  -webkit-box-shadow: 0 0 0 1000px var(--color-bg-input) inset;
+  caret-color: var(--dsh-text-1);
+}
+
+/* 主题切换时的过渡：只在真正换肤那一下生效，避免每次悬停都糊一层动画 */
+.dsh-theming *,
+.dsh-theming *::before,
+.dsh-theming *::after {
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ─── 七、给 EP 内部结构做隔离 ─── */
+/* style.css 里的裸元素规则（table/th/td/input）已经包成 :where() 权重归零，
+   但仍会顺着标签打到 EP 表格内部的 <table>/<td> 上：竖线、外边距、表头底色串味。
+   这里显式清干净；EP 自己的 .el-table__cell 一类规则权重更高，照常生效。 */
+.el-table :is(table, thead, tbody, tr, th, td),
+.el-descriptions :is(table, th, td) {
+  border: 0;
+  margin: 0;
+  background-color: transparent;
+  color: inherit;
+}
+
+.el-scrollbar__bar {
+  opacity: 0.85;
+}
+.el-scrollbar__bar.is-vertical { width: 8px; }
+.el-scrollbar__bar.is-horizontal { height: 8px; }
+.el-scrollbar__thumb { background-color: var(--dsh-border-strong); }

@@ -1,0 +1,296 @@
+/* =============================================
+   令牌层 tokens.css —— 全站唯一配色来源
+   ---------------------------------------------
+   规则（docs/UI-THEME.md 里写得更细，这里只放最要紧的三条）：
+   1. 页面与组件不许再写死十六进制色，一律取本文件的变量；
+      画布类图形（通道条、姿态球、图表）取 src/utils/theme.js 的 CHART_COLORS，
+      与这里的值同名同色，两边由自测第 23 组比对。
+   2. #66ccff 是强调的本体：填充、图形、激活条，以及两套主题的**文字类强调**
+      （--dsh-accent-ink 日间也指到它——业主 2026-07-31 明确选定这个观感）。
+      比值按实数记在 theme.js 的契约里：#66ccff 压白底 1.90:1、压浅蓝底 1.61:1。
+      唯一不走它的是"必须看得见"的结构线——焦点环与聚焦描边用 --dsh-accent-deep：
+      浅底上 2px 半透明的亮蓝约等于没有，键盘走位就瞎了。
+   3. 背景走中性面（日间近白、夜间深蓝灰），主色大面积不上身——
+      飞行数据同屏时，蓝条抢注意力就等于丢数据。
+   ---------------------------------------------
+   命名：--dsh-* 是我们自己的语义令牌；--color-* 是老名字，
+   现在只是别名（各页现有写法不改就能吃到新配色），别在新代码里用。
+   ============================================= */
+
+/* 明暗公共部分：尺寸、圆角、间距、动效（两套主题共享，密度按"紧凑"定） */
+:root {
+  /* ─── 主色族 ─── */
+  --dsh-accent: #66ccff;        /* FMT 主题色：填充、图形，两套主题的文字类强调也走它 */
+  --dsh-accent-hi: #9adcff;     /* 更亮一档：hover 提亮、图形高亮 */
+  --dsh-accent-lo: #2f9ede;     /* 更暗一档：渐变下端、描边 */
+  --dsh-ink-on-accent: #061826; /* 压在亮蓝上的字色（近墨，9.98:1） */
+
+  /* ─── 圆角：中小（紧凑密度配套） ─── */
+  --dsh-radius-sm: 4px;
+  --dsh-radius: 6px;
+  --dsh-radius-lg: 10px;
+  --dsh-radius-full: 9999px;
+
+  /* ─── 字号：以 13px 为正文基准（1080p 现场一屏能装下 16 路通道） ─── */
+  --dsh-font-xs: 11px;
+  --dsh-font-sm: 12px;
+  --dsh-font: 13px;
+  --dsh-font-md: 14px;
+  --dsh-font-lg: 16px;
+  --dsh-font-xl: 19px;
+  --dsh-font-2xl: 22px;
+  --dsh-leading: 1.45;
+
+  /* ─── 间距与控件高度（4px 基准的紧凑阶梯） ─── */
+  --dsp: 4px;                   /* 最小步长，供下面的派生值参考 */
+  --dsh-gap-xs: 4px;
+  --dsh-gap-sm: 6px;
+  --dsh-gap: 10px;
+  --dsh-gap-lg: 14px;
+  --dsh-gap-xl: 20px;
+  --dsh-row-h: 28px;            /* 按钮/输入框默认高 */
+  --dsh-row-h-sm: 24px;
+  --dsh-table-row-h: 30px;      /* 表格行目标高 */
+  --dsh-shell-h: 34px;          /* 顶栏 */
+  --dsh-foot-h: 26px;           /* 底栏状态条 */
+  --dsh-nav-w: 116px;           /* 左侧导航宽 */
+
+  --dsh-font-family: 'Inter', 'Helvetica Neue', Helvetica, 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+  --dsh-font-mono: 'JetBrains Mono', 'Cascadia Mono', Consolas, 'Courier New', monospace;
+
+  --dsh-transition: 0.16s ease;
+  --dsh-shadow-strength: 0.10;  /* 日间阴影更实，夜间靠边框分层 */
+}
+
+/* 数字读数按需挂载，不改变正文的 13px 紧凑密度与主题预着色。 */
+.dsh-num {
+  font-family: var(--dsh-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── 日间（中性近白 + 深蓝灰文字） ─── */
+:root,
+:root[data-theme='light'] {
+  --dsh-canvas: #f2f5f9;        /* L0 页面底 */
+  --dsh-surface: #ffffff;       /* L1 卡片、顶栏、侧栏 */
+  --dsh-surface-2: #f7f9fc;     /* L2 悬停、表头、次级面板 */
+  --dsh-surface-3: #eef2f8;     /* L3 选中、分组底 */
+  --dsh-chrome: #ffffff;        /* 外壳条（顶栏/侧栏/底栏） */
+  --dsh-border: #dde3ec;
+  --dsh-border-strong: #c3cbd8;
+  --dsh-divider: #e8ecf2;
+
+  --dsh-text-1: #1b2431;
+  --dsh-text-2: #48556b;
+  --dsh-text-3: #68758a;
+  --dsh-placeholder: #9aa5b4;
+
+  /* 日间文字类强调直接压品牌蓝（业主选定）：1.90:1 是真数，留在契约里不假装达标；
+     将来要整体回到可读优先，只改 --dsh-accent-ink 这一行就行。 */
+  --dsh-accent-ink: #66ccff;
+  --dsh-accent-deep: #0a6fa8;   /* 结构线专用加深档：焦点环、聚焦描边，压白底 5.45:1 */
+  --dsh-accent-soft: #e6f4ff;   /* 主色浅底（标签底、选中底） */
+  --dsh-hover: #f0f4fa;
+  --dsh-active: #e6ecf5;
+  --dsh-scrim: rgba(15, 21, 32, 0.42);
+  --dsh-mix: #ffffff;           /* 派生色阶时向哪个方向混（EP 约定） */
+
+  /* 3D 视角面板与终端：这两块必须一直压暗（飞行姿态/黑底字符），
+     但它们也是"面"，所以照样走令牌，日间只是浅一点的黑，不写死在页面里。 */
+  --dsh-console-bg: #0d1b2a;
+  --dsh-console-fg: #e0e0e0;
+  --dsh-console-hi: #64b5f6;
+  --dsh-console-dim: #8899bb;
+  --dsh-ink-on-fill: #ffffff;           /* 彩色填充上的字：日间白（业主选定亮填充+白字），夜间反过来压深 */
+
+  /* 功能色：日间用"墨"级亮度，保证当文字也够 4.5:1 */
+  --dsh-success: #1a7a3f;           /* 压白底要保住 4.5:1（#2e9e5b 只有 3.07，做文字会瞎） */
+  --dsh-warning: #a1620a;                /* 黄色当文字用的那一档：压白底 4.9:1 */
+  --dsh-warning-fill: #f0b429;           /* 亮黄只做按钮填充，绝不当文字（白底 1.86:1 会瞎） */
+  --dsh-danger: #c53d3d;
+  --dsh-info: #5b6b80;
+  /* 炸机/未解锁这类必须刺眼的地方单独给一档亮红，别用表单校验红 */
+  --dsh-danger-vivid: #e0454b;
+
+  --dsh-shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06), 0 2px 8px rgba(16, 24, 40, 0.06);
+  --dsh-shadow: 0 2px 6px rgba(16, 24, 40, 0.08), 0 8px 20px rgba(16, 24, 40, 0.10);
+  --dsh-shadow-lg: 0 12px 32px rgba(16, 24, 40, 0.14);
+
+  /* ─── 老名字别名（各页现有 var(--color-*) 写法继续有效） ─── */
+  --color-primary: var(--dsh-accent-ink);
+  --color-primary-light: var(--dsh-accent-lo);
+  --color-primary-dark: var(--dsh-accent-deep);
+  --color-primary-bg: var(--dsh-accent-soft);
+  --color-success: var(--dsh-success);
+  --color-warning: var(--dsh-warning);
+  --color-danger: var(--dsh-danger);
+  --color-info: var(--dsh-info);
+  --color-text-primary: var(--dsh-text-1);
+  --color-text-regular: var(--dsh-text-2);
+  --color-text-secondary: var(--dsh-text-3);
+  --color-text-placeholder: var(--dsh-placeholder);
+  --color-text-disabled: #b2bac6;
+  --color-border: var(--dsh-border);
+  --color-border-light: var(--dsh-divider);
+  --color-border-base: var(--dsh-border);
+  --color-bg: var(--dsh-canvas);
+  --color-bg-page: var(--dsh-canvas);
+  --color-bg-white: var(--dsh-surface);
+  --color-bg-container: var(--dsh-surface);
+  --color-bg-elevated: var(--dsh-surface-3);
+  --color-bg-input: var(--dsh-surface);
+  --color-hover-bg: var(--dsh-hover);
+  --color-active-bg: var(--dsh-active);
+}
+
+/* ─── 夜间（深蓝灰底 + 亮蓝强调） ─── */
+/* 选择器写成 :root[data-theme=...] 而不是 html.dark：
+   Element Plus 自带的暗色表用的就是 html.dark，同权重会互相顶掉；
+   :root + 属性选择器权重更高，我们的调色板必然赢。 */
+:root[data-theme='dark'] {
+  --dsh-canvas: #0f1520;
+  --dsh-surface: #151d2b;
+  --dsh-surface-2: #1b2534;
+  --dsh-surface-3: #202c3e;
+  --dsh-chrome: #151d2b;
+  --dsh-border: #2b384c;
+  --dsh-border-strong: #3d4d66;
+  --dsh-divider: #243044;
+
+  --dsh-text-1: #e6edf6;
+  --dsh-text-2: #c1ccdb;
+  --dsh-text-3: #93a2b5;
+  --dsh-placeholder: #6c7b8f;
+
+  /* 夜间主色就是 #66ccff 本体：压深蓝灰底 9.37:1，当文字、当按钮底都够 */
+  --dsh-accent-ink: var(--dsh-accent);
+  --dsh-accent-deep: var(--dsh-accent);   /* 夜间没有浅底要压，结构线不需要加深 */
+  --dsh-accent-soft: #123045;
+  --dsh-hover: #1c2637;
+  --dsh-active: #223046;
+  --dsh-scrim: rgba(4, 8, 14, 0.62);
+  --dsh-mix: #000000;
+
+  --dsh-console-bg: #0a1420;
+  --dsh-console-fg: #dbe7f4;
+  --dsh-console-hi: #8fd0ff;
+  --dsh-console-dim: #7d93b8;
+  --dsh-ink-on-fill: var(--dsh-ink-on-accent);  /* 夜间填充是亮色系，字色反过来压深 */
+
+  --dsh-success: #5dc98f;
+  --dsh-warning: #e9b949;
+  --dsh-warning-fill: #e9b949;           /* 夜间亮黄本来就是这一档，填充与文字同源 */
+  --dsh-danger: #ff7b72;
+  --dsh-info: #8fa3bd;
+  --dsh-danger-vivid: #ff5d5d;
+
+  --dsh-shadow-strength: 0.5;
+  --dsh-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --dsh-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  --dsh-shadow-lg: 0 14px 36px rgba(0, 0, 0, 0.6);
+
+  --color-primary: var(--dsh-accent);
+  --color-primary-light: var(--dsh-accent-hi);
+  --color-primary-dark: var(--dsh-accent-lo);
+  --color-primary-bg: var(--dsh-accent-soft);
+  --color-success: var(--dsh-success);
+  --color-warning: var(--dsh-warning);
+  --color-danger: var(--dsh-danger);
+  --color-info: var(--dsh-info);
+  --color-text-primary: var(--dsh-text-1);
+  --color-text-regular: var(--dsh-text-2);
+  --color-text-secondary: var(--dsh-text-3);
+  --color-text-placeholder: var(--dsh-placeholder);
+  --color-text-disabled: #59667a;
+  --color-border: var(--dsh-border);
+  --color-border-light: var(--dsh-divider);
+  --color-border-base: var(--dsh-border);
+  --color-bg: var(--dsh-canvas);
+  --color-bg-page: var(--dsh-canvas);
+  --color-bg-white: var(--dsh-surface);
+  --color-bg-container: var(--dsh-surface);
+  --color-bg-elevated: var(--dsh-surface-3);
+  --color-bg-input: #111926;
+  --color-hover-bg: var(--dsh-hover);
+  --color-active-bg: var(--dsh-active);
+}
+
+
+/* ─── 老名字别名：尺寸/间距/圆角/阴影/层级 ─── */
+/* style.css 与部分页面还在用这套名字；这里一次性指向新的密度令牌，
+   以后要改紧凑度只改上面一处。 */
+:root {
+  --font-family: var(--dsh-font-family);
+  --font-size-xs: var(--dsh-font-xs);
+  --font-size-sm: var(--dsh-font);
+  --font-size-md: var(--dsh-font-md);
+  --font-size-lg: var(--dsh-font-lg);
+  --font-size-xl: var(--dsh-font-xl);
+  --font-size-2xl: var(--dsh-font-2xl);
+  --font-size-3xl: 28px;
+
+  --spacing-xs: var(--dsh-gap-xs);
+  --spacing-sm: var(--dsh-gap-sm);
+  --spacing-md: var(--dsh-gap);
+  --spacing-lg: var(--dsh-gap-lg);
+  --spacing-xl: var(--dsh-gap-xl);
+  --spacing-2xl: 28px;
+
+  --radius-sm: var(--dsh-radius-sm);
+  --radius-md: var(--dsh-radius);
+  --radius-lg: var(--dsh-radius-lg);
+  --radius-xl: 14px;
+  --radius-full: var(--dsh-radius-full);
+
+  --shadow-sm: var(--dsh-shadow-sm);
+  --shadow-md: var(--dsh-shadow);
+  --shadow-lg: var(--dsh-shadow-lg);
+  --shadow-xl: var(--dsh-shadow-lg);
+
+  --transition-fast: 0.14s ease;
+  --transition-normal: var(--dsh-transition);
+  --transition-slow: 0.32s ease;
+
+  --z-index-dropdown: 1000;
+  --z-index-tooltip: 1010;
+  --z-index-modal-overlay: 1040;
+  --z-index-modal: 1050;
+  --z-index-fixed: 1100;
+
+  --box-shadow-base: var(--dsh-shadow-sm);
+  --box-shadow-light: var(--dsh-shadow);
+}
+
+/* 主色色阶别名：老代码里的 var(--color-primary-light-3/-5) 继续可用，同样派生 */
+:root {
+  --color-primary-light-1: color-mix(in srgb, var(--dsh-accent-ink) 90%, var(--dsh-mix));
+  --color-primary-light-2: color-mix(in srgb, var(--dsh-accent-ink) 80%, var(--dsh-mix));
+  --color-primary-light-3: color-mix(in srgb, var(--dsh-accent-ink) 70%, var(--dsh-mix));
+  --color-primary-light-4: color-mix(in srgb, var(--dsh-accent-ink) 60%, var(--dsh-mix));
+  --color-primary-light-5: color-mix(in srgb, var(--dsh-accent-ink) 50%, var(--dsh-mix));
+  --color-primary-light-6: color-mix(in srgb, var(--dsh-accent-ink) 40%, var(--dsh-mix));
+  --color-primary-light-7: color-mix(in srgb, var(--dsh-accent-ink) 30%, var(--dsh-mix));
+  --color-primary-light-8: color-mix(in srgb, var(--dsh-accent-ink) 20%, var(--dsh-mix));
+  --color-primary-light-9: color-mix(in srgb, var(--dsh-accent-ink) 10%, var(--dsh-mix));
+  --color-primary-dark-1: color-mix(in srgb, var(--dsh-accent-ink) 90%, #000);
+  --color-primary-dark-2: color-mix(in srgb, var(--dsh-accent-ink) 80%, #000);
+  --color-border-lighter: var(--dsh-divider);
+  --color-border-dark: var(--dsh-border-strong);
+  --color-bg-overlay: var(--dsh-surface-3);
+}
+
+/* 真实值变化提示与唯一全局危险提示；减少动态效果时完全静态。 */
+.dsh-flash { animation: dsh-value-flash 300ms ease-out; border-radius: var(--dsh-radius-sm); }
+@keyframes dsh-value-flash { from { background-color: var(--dsh-accent-soft); } to { background-color: transparent; } }
+.dsh-danger-breathe { animation: dsh-danger-breathe 800ms ease-in-out infinite alternate; }
+@keyframes dsh-danger-breathe { from { opacity: 1; } to { opacity: .55; } }
+@media (prefers-reduced-motion: reduce) {
+  .dsh-flash, .dsh-danger-breathe { animation: none !important; }
+}
+
+/* 全局底色写在 html 上（比 body 更早生效，配合 index.html 的预着色消掉白闪） */
+:root {
+  background-color: var(--dsh-canvas);
+  color: var(--dsh-text-1);
+}

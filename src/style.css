@@ -1,0 +1,590 @@
+/* =============================================
+   ✅ Vue 全局样式表 (style.css)
+   ─────────────────────────────────────────────
+   📌 使用方式: 在 main.js 中 import './style.css'
+   🎯 所有可定制部分已用 CSS 变量标注
+   ============================================= */
+
+/* =============================================
+   🎨 一、配色令牌：不在本文件，去 src/styles/tokens.css
+   ---------------------------------------------
+   搬走的原因（三件都是真事）：
+   1) 原来这里 --color-primary 被写了三遍（13/79/88 行），值全是 Element Plus
+      默认的 #409eff，和 FMT 主题色 #66ccff 毫无关系；
+   2) 暗色块 [data-theme="dark"] 权重 0-1-1，压不过 EP 自带的 html.dark 变量表，
+      切夜间时表格/输入框/弹层基本不动——就是"切了没效果"；
+   3) --el-* 只在暗色块里映射了 6 个，日间完全没映射，组件一直在吃 EP 自己的色板。
+   现在：色值与密度只在 tokens.css 一套，EP 适配只在 styles/element-plus.css 一套。
+   --color-* / --font-size-* / --spacing-* / --radius-* / --shadow-* 这些老名字
+   仍在 tokens.css 里作为别名保留，本文件与 13 个页面的现有写法不用改就能吃到新配色。
+   ============================================= */
+
+/* =============================================
+   🔄 二、CSS Reset & 基础重置
+   ============================================= */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  font-size: var(--font-size-md);
+  line-height: 1.5;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+/* 键盘焦点必须看得见：现场常用键盘在参数表里跳格，抹掉焦点框等于盲操作。
+   真正的焦点环在 styles/element-plus.css 里用 :focus-visible 给，鼠标点击不画环。 */
+:where(:focus) {
+  outline: none;
+}
+
+/* =============================================
+   🔤 三、排版系统
+   ============================================= */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  line-height: 1.3;
+  margin-bottom: var(--spacing-md);
+  color: var(--color-text-primary);
+}
+
+h1 { font-size: var(--font-size-2xl); }
+h2 { font-size: var(--font-size-xl); }
+h3 { font-size: var(--font-size-lg); }
+h4 { font-size: var(--font-size-md); }
+h5 { font-size: var(--font-size-sm); }
+h6 { font-size: var(--font-size-xs); }
+
+p {
+  margin-bottom: var(--spacing-sm);
+  color: var(--color-text-regular);
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--color-primary-light);
+}
+
+small {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+/* =============================================
+   📦 四、通用工具类 (Utilities)
+   ============================================= */
+
+/* ─── 布局 ─── */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+}
+
+.container-sm {
+  max-width: 768px;
+}
+
+.flex { display: flex; }
+.flex-center { display: flex; align-items: center; justify-content: center; }
+.flex-between { display: flex; align-items: center; justify-content: space-between; }
+.flex-column { flex-direction: column; }
+.flex-wrap { flex-wrap: wrap; }
+.flex-1 { flex: 1; }
+.flex-grow { flex-grow: 1; }
+.gap-xs { gap: var(--spacing-xs); }
+.gap-sm { gap: var(--spacing-sm); }
+.gap-md { gap: var(--spacing-md); }
+.gap-lg { gap: var(--spacing-lg); }
+
+/* ─── 间距 ─── */
+.mt-xs { margin-top: var(--spacing-xs); }
+.mt-sm { margin-top: var(--spacing-sm); }
+.mt-md { margin-top: var(--spacing-md); }
+.mt-lg { margin-top: var(--spacing-lg); }
+.mb-xs { margin-bottom: var(--spacing-xs); }
+.mb-sm { margin-bottom: var(--spacing-sm); }
+.mb-md { margin-bottom: var(--spacing-md); }
+.mb-lg { margin-bottom: var(--spacing-lg); }
+.ml-auto { margin-left: auto; }
+.mr-auto { margin-right: auto; }
+.p-sm { padding: var(--spacing-sm); }
+.p-md { padding: var(--spacing-md); }
+.p-lg { padding: var(--spacing-lg); }
+.px-md { padding-left: var(--spacing-md); padding-right: var(--spacing-md); }
+.py-md { padding-top: var(--spacing-md); padding-bottom: var(--spacing-md); }
+
+/* ─── 文字 ─── */
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.text-left { text-align: left; }
+.text-bold { font-weight: 700; }
+.text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.text-primary { color: var(--color-primary); }
+.text-success { color: var(--color-success); }
+.text-warning { color: var(--color-warning); }
+.text-danger { color: var(--color-danger); }
+.text-muted { color: var(--color-text-secondary); }
+
+/* ─── 显示/隐藏 ─── */
+.hidden { display: none !important; }
+.block { display: block; }
+.inline-block { display: inline-block; }
+.invisible { visibility: hidden; }
+.opacity-0 { opacity: 0; }
+.opacity-50 { opacity: 0.5; }
+
+/* ─── 圆角 ─── */
+.rounded { border-radius: var(--radius-md); }
+.rounded-sm { border-radius: var(--radius-sm); }
+.rounded-lg { border-radius: var(--radius-lg); }
+.rounded-full { border-radius: var(--radius-full); }
+
+/* ─── 阴影 ─── */
+.shadow-sm { box-shadow: var(--shadow-sm); }
+.shadow-md { box-shadow: var(--shadow-md); }
+.shadow-lg { box-shadow: var(--shadow-lg); }
+
+/* ─── 边框 ─── */
+.border { border: 1px solid var(--color-border); }
+.border-bottom { border-bottom: 1px solid var(--color-border); }
+.border-top { border-top: 1px solid var(--color-border); }
+.border-none { border: none; }
+
+/* ─── 宽度/高度 ─── */
+.w-full { width: 100%; }
+.w-screen { width: 100vw; }
+.h-full { height: 100%; }
+.h-screen { height: 100vh; }
+.min-h-screen { min-height: 100vh; }
+
+/* ─── 过渡 ─── */
+.transition-all { transition: all var(--transition-normal); }
+.transition-fast { transition: all var(--transition-fast); }
+
+/* ─── 鼠标 ─── */
+.cursor-pointer { cursor: pointer; }
+.cursor-default { cursor: default; }
+.cursor-not-allowed { cursor: not-allowed; }
+.pointer-events-none { pointer-events: none; }
+
+/* ─── 浮动 ─── */
+.float-left { float: left; }
+.float-right { float: right; }
+.clearfix::after {
+  content: '';
+  display: block;
+  clear: both;
+}
+
+/* ─── 溢出 ─── */
+.overflow-hidden { overflow: hidden; }
+.overflow-auto { overflow: auto; }
+.overflow-y-auto { overflow-y: auto; }
+.overflow-x-hidden { overflow-x: hidden; }
+
+/* =============================================
+   🔘 五、表单元素基础样式
+   ============================================= */
+:where(input, textarea, select) {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  border: none;
+  background: transparent;
+  outline: none;
+  -webkit-appearance: none;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-text-placeholder);
+}
+
+/* 输入框 */
+:where(input[type="text"], input[type="password"], input[type="email"], input[type="number"],
+  input[type="tel"], input[type="search"], textarea, select) {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-white);
+  transition: border-color var(--transition-fast),
+  box-shadow var(--transition-fast);
+}
+
+/* 1px 聚焦描边是结构线不是文字：走 --dsh-accent-deep，日间才不会在白底上糊成看不见 */
+:where(input:focus, textarea:focus, select:focus) {
+  border-color: var(--dsh-accent-deep);
+  box-shadow: 0 0 0 3px var(--color-primary-bg);
+}
+
+:where(input[disabled], textarea[disabled], select[disabled]) {
+  background-color: var(--dsh-surface-2);
+  color: var(--color-text-placeholder);
+  cursor: not-allowed;
+}
+
+/* 按钮：原来这里有一条 .aside-button（侧栏按钮的壳层样式）。
+   侧栏已改成 App.vue 里的行式导航并写在其 scoped 样式内，全局不该再留壳层规则。 */
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.aside-row {
+  margin-bottom: 1px;
+  margin-left: 10px;
+}
+
+.router {
+  width: 100%;
+  height: 10px;
+}
+
+/* 自定义按钮样式示例（可按需保留或删除） */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  line-height: 1.5;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.btn-primary {
+  /* 跟 Element Plus 的主按钮一致：底色是品牌蓝本体，字色走 --dsh-ink-on-fill（日间白、夜间近墨） */
+  background: var(--dsh-accent);
+  color: var(--dsh-ink-on-fill);
+  border-color: var(--dsh-accent);
+  font-weight: 600;
+}
+.btn-primary:hover {
+  background: var(--dsh-accent-hi);
+  border-color: var(--dsh-accent-hi);
+}
+
+/* 日间 #9adcff 上白字只剩 1.55:1，按 EP 主按钮同样的办法往深一档走（见 element-plus.css §三） */
+:root[data-theme='light'] .btn-primary:hover {
+  background: var(--dsh-accent-lo);
+  border-color: var(--dsh-accent-lo);
+}
+
+.btn-default {
+  background: var(--color-bg-white);
+  color: var(--color-text-primary);
+  border-color: var(--color-border);
+}
+.btn-default:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary-light);
+}
+
+.btn-success { background: var(--color-success); color: var(--dsh-ink-on-fill); }
+.btn-warning { background: var(--dsh-warning-fill); color: var(--dsh-ink-on-fill); }
+.btn-danger { background: var(--color-danger); color: var(--dsh-ink-on-fill); }
+.btn-sm { padding: 6px 12px; font-size: var(--font-size-xs); }
+.btn-lg { padding: 12px 24px; font-size: var(--font-size-md); }
+
+/* 复选框 & 单选框美化 */
+input[type="checkbox"],
+input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  margin-right: var(--spacing-xs);
+  accent-color: var(--dsh-accent);
+  cursor: pointer;
+}
+
+/* =============================================
+   📋 六、表格基础样式
+   ============================================= */
+:where(table) {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+:where(th, td) {
+  padding: var(--spacing-sm) var(--spacing-md);
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+:where(th) {
+  font-weight: 600;
+  background: var(--color-bg);
+  color: var(--color-text-regular);
+  white-space: nowrap;
+}
+
+:where(tbody tr):hover {
+  background: var(--dsh-hover);
+}
+
+/* =============================================
+   🖼️ 七、图片 & 媒体
+   ============================================= */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+img[loading="lazy"] {
+  filter: blur(5px);
+  transition: filter 0.3s;
+}
+
+img[loading="lazy"].loaded {
+  filter: none;
+}
+
+video {
+  max-width: 100%;
+}
+
+/* =============================================
+   📜 八、滚动条样式
+   ============================================= */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--dsh-border-strong);
+  border-radius: var(--dsh-radius-full);
+  transition: background var(--transition-fast);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-secondary);
+}
+
+/* Firefox 滚动条 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--dsh-border-strong) transparent;
+}
+
+/* =============================================
+   ✨ 九、动画
+   ============================================= */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+
+.animate-fade-in { animation: fadeIn var(--transition-normal) both; }
+.animate-slide-up { animation: slideUp var(--transition-normal) both; }
+.animate-slide-down { animation: slideDown var(--transition-normal) both; }
+.animate-pulse { animation: pulse 2s ease-in-out infinite; }
+.animate-spin { animation: spin 1s linear infinite; }
+.animate-shake { animation: shake 0.3s ease-in-out; }
+
+/* =============================================
+   🧩 十、常用组件占位样式
+   ============================================= */
+
+/* Card 卡片 */
+.card {
+  background: var(--dsh-surface) !important;
+  color: var(--color-text-regular)  !important;
+  overflow: hidden;
+  transition: box-shadow var(--transition-fast);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.card > .card-header {
+  padding: var(--dsh-gap-sm) var(--dsh-gap);
+  font-size: var(--dsh-font-md);
+  border-bottom: 1px solid var(--color-border-light);
+  font-weight: 600;
+}
+
+.card-body {
+  padding: var(--dsh-gap);
+}
+
+.card-footer {
+  padding: var(--dsh-gap-sm) var(--dsh-gap);
+  border-top: 1px solid var(--color-border-light);
+  background: var(--color-bg);
+}
+
+/* Badge 徽标 */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  border-radius: var(--radius-full);
+  line-height: 1.4;
+}
+
+.badge-primary { background: var(--color-primary-bg); color: var(--color-primary); }
+.badge-success { background: rgba(103, 194, 58, 0.1); color: var(--color-success); }
+.badge-warning { background: rgba(230, 162, 60, 0.1); color: var(--color-warning); }
+.badge-danger { background: rgba(245, 108, 108, 0.1); color: var(--color-danger); }
+
+/* Tag 标签 */
+.tag {
+  display: inline-block;
+  padding: 2px 10px;
+  font-size: var(--font-size-xs);
+  background: var(--color-bg);
+  color: var(--color-text-regular);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.tag:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary-light);
+}
+
+/* Divider 分割线 */
+.divider {
+  height: 1px;
+  background: var(--color-border-light);
+  margin: var(--spacing-md) 0;
+  border: none;
+}
+
+/* Loading 骨架屏占位 */
+.skeleton {
+  background: linear-gradient(
+          90deg,
+          var(--color-border-light) 25%,
+          #f0f0f0 50%,
+          var(--color-border-light) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* =============================================
+   📱 十一、响应式断点辅助类
+   ============================================= */
+.sm-only { display: none; }   /* < 768px 隐藏 */
+.md-only { display: none; }   /* 768px ~ 1024px 隐藏 */
+.lg-only { display: none; }   /* >= 1024px 隐藏 */
+
+/* 响应式显示（按需取消注释）
+@media (max-width: 768px) {
+  .sm-only { display: block; }
+}
+@media (min-width: 768px) and (max-width: 1024px) {
+  .md-only { display: block; }
+}
+@media (min-width: 1024px) {
+  .lg-only { display: block; }
+}
+*/
+
+/* =============================================
+   🔧 十二、打印样式
+   ============================================= */
+@media print {
+  body {
+    background: #fff;
+    color: #000;
+  }
+  .no-print { display: none !important; }
+  .card, .btn { box-shadow: none; border: 1px solid #ddd; }
+}
+
+/* =============================================
+   🎯 十三、客制化区域入口
+   ─────────────────────────────────────────────
+   💡 在此处添加你项目专属的样式
+   ============================================= */

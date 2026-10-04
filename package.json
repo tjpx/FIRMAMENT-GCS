@@ -1,0 +1,30 @@
+{
+  "name": "fgc",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "gen:mavlink": "node scripts/gen-mavlink-table.mjs",
+    "selftest": "node scripts/selftest.mjs"
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "^2.3.2",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
+    "chart.js": "^4.5.1",
+    "element-plus": "^2.14.3",
+    "pinia": "^4.0.2",
+    "three": "^0.185.1",
+    "vue": "^3.5.40",
+    "vue-router": "^5.2.0"
+  },
+  "devDependencies": {
+    "@types/w3c-web-serial": "^1.0.8",
+    "@vitejs/plugin-vue": "^6.0.8",
+    "@vue/compiler-sfc": "^3.5.40",
+    "vite": "^8.2.0"
+  }
+}
