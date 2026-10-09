@@ -116,8 +116,10 @@ function createInstance() {
     error: null,
     identity: { detected: false, sysid: null, compid: null, type: null, autopilot: null, systemStatus: null, systemStatusLabel: '—' },
     heartbeat: { lastAt: 0, ageMs: null, healthy: false },
-    freshness: { vfrHud: 0, attitude: 0, gps: 0, battery: 0, sysStatus: 0, rc: 0, servos: 0, statusText: 0 },
-    valid: { vfrHud: false, attitude: false, gps: false, battery: false, sysStatus: false, rc: false, servos: false },
+    // attitude 只由 ATTITUDE(msgid 30) 点亮，imu 是 SCALED_IMU/RAW_IMU/HIGHRES_IMU 的独立通道。
+    // 两者过去共用一个键：飞控不推 ATTITUDE 时，姿态读数照样被判成"新鲜"，死值 0 看着像实时值。
+    freshness: { vfrHud: 0, attitude: 0, imu: 0, gps: 0, battery: 0, sysStatus: 0, rc: 0, servos: 0, statusText: 0 },
+    valid: { vfrHud: false, attitude: false, imu: false, gps: false, battery: false, sysStatus: false, rc: false, servos: false },
   })
   let deviceTicker = null
 
@@ -1756,9 +1758,12 @@ function createInstance() {
     const freshnessKey = {
       [MAVLINK_MSG_ID.VFR_HUD]: 'vfrHud',
       [MAVLINK_MSG_ID.ATTITUDE]: 'attitude',
-      [MAVLINK_MSG_ID.SCALED_IMU]: 'attitude',
-      [MAVLINK_MSG_ID.RAW_IMU]: 'attitude',
-      [MAVLINK_MSG_ID.HIGHRES_IMU]: 'attitude',
+      [MAVLINK_MSG_ID.ATTITUDE_QUATERNION]: 'attitude',  // 这台 FMT 的实际姿态走四元数（31）而非欧拉角（30），二者点亮同一个 attitude 新鲜度
+      // 这三条只写 data.imu（原始加计/陀螺/磁力计），从不写 data.attitude，所以它们不能证明
+      // 姿态解算在输出。单独记到 'imu'，"飞控到底有没有推 ATTITUDE"才在界面上看得出来。
+      [MAVLINK_MSG_ID.SCALED_IMU]: 'imu',
+      [MAVLINK_MSG_ID.RAW_IMU]: 'imu',
+      [MAVLINK_MSG_ID.HIGHRES_IMU]: 'imu',
       [MAVLINK_MSG_ID.GPS_RAW_INT]: 'gps',
       [MAVLINK_MSG_ID.SYS_STATUS]: 'sysStatus',
       [MAVLINK_MSG_ID.RC_CHANNELS]: 'rc',
@@ -1825,6 +1830,21 @@ function createInstance() {
           a.roll = R(raw, 'roll') * R2D
           a.pitch = R(raw, 'pitch') * R2D
           a.yaw = R(raw, 'yaw') * R2D
+          a.rollspeed = R(raw, 'rollspeed') * R2D
+          a.pitchspeed = R(raw, 'pitchspeed') * R2D
+          a.yawspeed = R(raw, 'yawspeed') * R2D
+          break
+        }
+        case MAVLINK_MSG_ID.ATTITUDE_QUATERNION: {
+          // 这台飞控的实际姿态以四元数下发（msgid 31），不推欧拉角的 msgid 30。
+          // 用标准 3-2-1(ZYX) 转成与 ATTITUDE 同定义的 roll/pitch/yaw，写进同一个 data.attitude。
+          const a = data.attitude
+          const n = Math.hypot(R(raw, 'q1'), R(raw, 'q2'), R(raw, 'q3'), R(raw, 'q4')) || 1
+          const w = R(raw, 'q1') / n, x = R(raw, 'q2') / n, y = R(raw, 'q3') / n, z = R(raw, 'q4') / n
+          a.timeBootMs = R(raw, 'time_boot_ms')
+          a.roll = Math.atan2(2 * (w * x + y * z), 1 - 2 * (x * x + y * y)) * R2D
+          a.pitch = Math.asin(Math.max(-1, Math.min(1, 2 * (w * y - z * x)))) * R2D
+          a.yaw = Math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z)) * R2D
           a.rollspeed = R(raw, 'rollspeed') * R2D
           a.pitchspeed = R(raw, 'pitchspeed') * R2D
           a.yawspeed = R(raw, 'yawspeed') * R2D

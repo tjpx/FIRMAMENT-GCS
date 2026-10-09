@@ -38,9 +38,9 @@ const typed = ref(''); const device = ref(null)
 const progress = ref(null); const destructive = ref(false)
 let io = null; let release = null; let disposed = false
 const motorSafety = inject('motorTestSafety')
-const canIdentify = computed(() => !motorSafety?.value?.active && !motorSafety?.value?.uncertain && !mav.firmwareExclusive.value && typeof navigator !== 'undefined' && !!navigator.serial && !busy.value && !device.value && inspection.value && compatible.value && backup.value && !fc.busy && !fc.hasChanges && !mav.connecting.value && !mav.reconnecting.value && !mav.vehicle.armed)
-const canFlash = computed(() => !busy.value && !!device.value && !!io && !!release && !!inspection.value && !motorSafety?.value?.active && !motorSafety?.value?.uncertain && compatible.value && backup.value && source.value === 'local' && typed.value === '刷写' && !destructive.value)
-function resetSelection() { compatible.value = false; typed.value = ''; inspection.value = null }
+const canIdentify = computed(() => !motorSafety?.value?.active && !motorSafety?.value?.uncertain && !mav.firmwareExclusive.value && typeof navigator !== 'undefined' && !!navigator.serial && !busy.value && !device.value && inspection.value && !fc.busy && !fc.hasChanges && !mav.connecting.value && !mav.reconnecting.value && !mav.vehicle.armed)
+const canFlash = computed(() => !busy.value && !!device.value && !!io && !!release && !!inspection.value && !motorSafety?.value?.active && !motorSafety?.value?.uncertain && source.value === 'local' && typed.value === '刷写' && !destructive.value)
+function resetSelection() { typed.value = ''; inspection.value = null }
 async function releaseDevice() {
   const channel = io
   if (channel) await channel.close()
@@ -55,7 +55,7 @@ async function closeAfterOperation() {
 async function selectFile(event) {
   if (busy.value) return
   const file = event.target.files?.[0]
-  busy.value = true; error.value = ''; inspection.value = null; typed.value = ''; compatible.value = false
+  busy.value = true; error.value = ''; inspection.value = null; typed.value = ''
   try {
     await releaseDevice()
     const result = await inspectFirmwareFile(file)
@@ -109,5 +109,5 @@ window.addEventListener('beforeunload', preventUnload)
 onBeforeUnmount(() => { disposed = true; window.removeEventListener('beforeunload', preventUnload); if (!busy.value) void closeAfterOperation() })
 </script>
 <style scoped>
-.firmware-page{padding:20px;min-height:100%;color:var(--dsh-text-1);background:var(--dsh-canvas)}.firmware-card{padding:20px;border:1px solid var(--dsh-border);border-radius:var(--dsh-radius);background:var(--dsh-surface);max-width:1000px}.selectors{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:20px}.selectors label{display:flex;flex-direction:column;gap:8px;font-size:13px;min-width:220px}.note{font-size:13px;line-height:1.8;color:var(--dsh-text-2)}.checks,.actions{display:flex;gap:14px;flex-wrap:wrap;margin:18px 0}.checks{flex-direction:column;gap:8px}@media(max-width:650px){.firmware-page,.firmware-card{padding:14px}.selectors label{min-width:0;width:100%}}
+.firmware-page{padding:20px;min-height:100%;color:var(--dsh-text-1);background:var(--dsh-canvas)}.firmware-card{padding:20px;border:1px solid var(--dsh-border);border-radius:var(--dsh-radius);background:var(--dsh-surface);max-width:1000px}.selectors{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:20px}.selectors label{display:flex;flex-direction:column;gap:8px;font-size:13px;min-width:220px}.note{font-size:13px;line-height:1.8;color:var(--dsh-text-2)}.actions{display:flex;gap:14px;flex-wrap:wrap;margin:18px 0}@media(max-width:650px){.firmware-page,.firmware-card{padding:14px}.selectors label{min-width:0;width:100%}}
 </style>

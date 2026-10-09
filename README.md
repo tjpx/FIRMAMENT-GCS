@@ -40,6 +40,7 @@ npm run dev        # Vite 开发服务，默认 http://localhost:5173
 | --- | --- |
 | `npm run dev` | 开发服务器 |
 | `npm run build` | 生产构建，产物在 `dist/` |
+| `npm run selftest` | 协议/内核层自测（无浏览器依赖，`node scripts/selftest.mjs`） |
 | `npm run preview` | 本机起静态服务验证构建产物（`http://localhost:4173`，自带 SPA fallback） |
 
 ## 目录结构
