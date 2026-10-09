@@ -23,6 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 
+# 本地草稿与临时文件（不随仓库分发）
+src/tmp/
+src/**/*.txt
+
 # 内部资料与协议基准：不随公开仓库分发（本地保留）
 docs/
 sample/
