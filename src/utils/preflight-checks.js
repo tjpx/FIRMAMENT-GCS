@@ -1,7 +1,12 @@
 // P0 起飞前检查规则：纯函数，输入事实快照，输出可解释的检查结果。
 // 规则不猜测未上报数据；unknown 必须由界面显示为“未验证”。
 
+import { calibrationReadSummary } from './calibration-read.js'
+
 export const CHECK_LEVEL = Object.freeze({ BLOCK: 'block', WARN: 'warn', INFO: 'info' })
+
+/** 校准证据的保鲜期：超过它必须重新读 CALIB，不拿旧读数当本次结论 */
+export const CALIBRATION_EVIDENCE_TTL_MS = 5 * 60 * 1000
 
 function result(key, label, level, status, detail, action, route = '') {
   return { key, label, level, status, detail, action, route }
@@ -12,9 +17,13 @@ export function evaluatePreflight(snapshot = {}) {
   const identity = snapshot.identityDetected === true
   const configLoaded = snapshot.configLoaded === true
   const configClean = snapshot.configDirty === false
-  const sensorsReported = snapshot.sensorsReported === true
-  const sensorsHealthy = snapshot.sensorsHealthy === true
-  const sensorsAgeOk = snapshot.sensorsAgeMs == null || snapshot.sensorsAgeMs <= 3000
+  // 这里刻意没有「传感器健康」项：固件的 onboard_control_sensors_health 恒等于 enabled|present
+  // （task_comm.c:253-254），那一项永远通过、也测不出任何东西，只会把校准问题说成「传感器健康」。
+  // 传感器是否可信由下面的 CALIB 校准证据负责，SYS_STATUS 位图不再参与起飞判定。
+  const calibrationEvidence = snapshot.calibrationEvidence || null
+  const calibrationAgeMs = Number.isFinite(snapshot.calibrationAgeMs) ? snapshot.calibrationAgeMs : null
+  const calibrationFresh = calibrationEvidence != null && (calibrationAgeMs == null || calibrationAgeMs <= CALIBRATION_EVIDENCE_TTL_MS)
+
   const receiverReported = snapshot.receiverReported === true
   const receiverHealthy = snapshot.receiverHealthy === true && (snapshot.receiverAgeMs == null || snapshot.receiverAgeMs <= 1500)
   const batteryReported = snapshot.batteryReported === true
@@ -42,11 +51,20 @@ export function evaluatePreflight(snapshot = {}) {
       : configLoaded
         ? result('config', '配置快照', CHECK_LEVEL.BLOCK, 'block', '存在未保存修改，必须先通过全局保存条写回并回读', '打开参数页保存', '/parameter')
         : result('config', '配置快照', CHECK_LEVEL.BLOCK, 'unknown', '尚未从飞控完整读取 sysconfig.toml / param.xml', '等待配置读取'),
-    sensorsReported && sensorsHealthy && sensorsAgeOk
-      ? result('sensors', '传感器健康', CHECK_LEVEL.BLOCK, 'pass', 'SYS_STATUS 报告传感器健康', '继续检查')
-      : sensorsReported
-        ? result('sensors', '传感器健康', CHECK_LEVEL.BLOCK, 'block', '存在未健康或未启用的传感器', '打开传感器页校准', '/sensor')
-        : result('sensors', '传感器健康', CHECK_LEVEL.BLOCK, 'unknown', '尚未收到传感器健康状态', '等待 SYS_STATUS'),
+    // 校准是独立证据：SYS_STATUS 的 health 位在固件里恒等于 enabled|present（task_comm.c:253-254），
+    // 与校准无关，所以必须单独读 CALIB 参数组，不能拿位图代替。
+    // 通过条件：陀螺仪、加速度计、罗盘、水平四类各自都有偏离出厂默认的字段。
+    !calibrationFresh
+      ? result('calibration', '传感器校准证据', CHECK_LEVEL.BLOCK, 'unknown',
+        calibrationEvidence == null
+          ? '尚未读取 CALIB 参数组；遥测与 SYS_STATUS 都不能推断校准状态'
+          : `CALIB 读数已超过 ${Math.round(CALIBRATION_EVIDENCE_TTL_MS / 60000)} 分钟，需重新读取后才作数`,
+        calibrationEvidence == null ? '读取 CALIB 参数' : '重新读取 CALIB 参数', '/sensor')
+      : !calibrationEvidence.complete
+        ? result('calibration', '传感器校准证据', CHECK_LEVEL.BLOCK, 'unknown', `CALIB 参数未完整读回：${calibrationReadSummary(calibrationEvidence)}`, '重新读取 CALIB 参数', '/sensor')
+        : calibrationEvidence.verified
+          ? result('calibration', '传感器校准证据', CHECK_LEVEL.BLOCK, 'pass', `${calibrationReadSummary(calibrationEvidence)} 仅证明四类校准都写入过参数，不证明当次校准的几何与水平方向正确。`, '继续检查')
+          : result('calibration', '传感器校准证据', CHECK_LEVEL.BLOCK, 'block', `${calibrationReadSummary(calibrationEvidence)} 这不是“已校准未通过”，而是查不到这几类校准的证据，禁止起飞。`, '打开传感器页校准', '/sensor'),
     receiverReported
       ? receiverHealthy
         ? result('receiver', '接收机输入', CHECK_LEVEL.BLOCK, 'pass', 'RC_CHANNELS 持续上报且 RSSI/通道状态可用', '继续检查')

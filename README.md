@@ -74,6 +74,8 @@ tools/com-probe.ps1              Windows 串口排查辅助脚本
 | 电机测试 | SERVO_OUTPUT_RAW 读数 | 读数已接通；MOTOR_TEST / COMMAND_LONG 指令未接通 |
 | 电池 | SYS_STATUS 电压、电流、剩余电量 | 读数已接通；阈值写入未接通（旧 `/cells` 页已弃用重写） |
 | 传感器 / 日志 等 | — | 原型页，页面内挂 `PrototypeNotice` 说明缺口 |
+| 准备飞行 · 传感器校准证据 | PARAM_REQUEST_READ 读 CALIB 参数组（`GYRO0_*OFF`、`ACC0_*`、`MAG0_*`、`LEVEL_XOFF/YOFF`） | 已接通，打开页面自动校验一次；通过条件是四类校准（陀螺仪/加速度计/罗盘/水平）各自都有偏离出厂默认的字段。原先的「传感器健康」项已摘除：`SYS_STATUS` 的 health 位在固件里恒等于 `enabled\|present`，永远通过且测不出东西 |
+| 传感器校准页 · 罗盘引导 | `[cal]` STATUSTEXT 播报 | 与加速度计共用六面姿态图：只会为固件真实播报过 `side done` 的面变绿，并直接写出「还缺朝左、朝后」，罗盘模式标出每面要绕的轴（Z/Y/X） |
 
 ## 许可证
 

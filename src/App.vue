@@ -354,7 +354,9 @@ const SENSOR_TAG = {
   MAV_SYS_STATUS_SENSOR_RC_RECEIVER: 'RC',
   MAV_SYS_STATUS_SENSOR_BATTERY: 'BATT',
   MAV_SYS_STATUS_AHRS: 'AHRS',
-  MAV_SYS_STATUS_PREARM_CHECK: 'PREARM',
+  // 固件把这一位当作「预检功能位」恒置在 health 里，却从不置到 enabled（task_comm.c:253-254），
+  // 所以它永远以「未启用」的灰标签出现。标签不能写成 PREARM，否则会被读成「预检失败/未校准」。
+  MAV_SYS_STATUS_PREARM_CHECK: '检查位',
 }
 
 const sensors = computed(() => {
@@ -447,7 +449,7 @@ const menuList = [
   { path: '/power', label: '电池' },
   { path: '/failsafe', label: '失控保护' },
   { path: '/sensor',    label: '传感器' },
-  { path: '/port',      label: '端口' },
+  { path: '/port',      label: '端口配置' },
   { path: '/rc',        label: '接收机' },
   { path: '/pid',       label: 'PID调参' },
   { path: '/motor',     label: '电机' },

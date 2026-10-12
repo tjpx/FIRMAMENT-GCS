@@ -39,23 +39,20 @@
           <div class="mode-selector"><span class="control-label">校准模式</span><el-radio-group v-model="calibrationType" :disabled="calibrationBusy || diagnosticBusy" size="small"><el-radio-button v-for="item in calibrationItems" :key="item.key" :label="item.key">{{ item.label }}</el-radio-button></el-radio-group></div>
             
           
-          <div v-if="calibrationType === 'accel'" class="calib-visual" :class="{ 'calib-visual--active': calibrationBusy }">
-            <div class="airframe-diagram" aria-label="六面姿态校准指示图">
-              <div v-for="face in calibrationFaces" :key="face.key" class="face-cell" :class="[`face-cell--${faceStates[face.key].state}`, { 'face-cell--current': currentFace === face.key }]">
-                <div class="face-signal" :class="faceStates[face.key].state === 'done' ? 'face-signal--green' : faceStates[face.key].state === 'active' ? 'face-signal--red' : 'face-signal--idle'" />
-                <div class="face-glyph">{{ face.glyph }}</div>
-                <div class="face-name">{{ face.label }}</div>
-                <div class="face-status">{{ faceStateLabel(faceStates[face.key].state) }}</div>
-              </div>
-            </div>
-            <div class="calib-signal-line"><span class="signal-box" :class="currentFace ? (faceStates[currentFace].state === 'done' ? 'signal-box--green' : 'signal-box--red') : 'signal-box--idle'" />{{ currentFace ? `当前姿态：${faceLabel(currentFace)}` : '等待飞控识别姿态' }}</div>
+          <!-- 加速度计与罗盘都是「六个姿态」：固件用同一套 acc_position_detect() 识别当前面
+               （mavproxy_cmd.c:129-180 阈值、:498 罗盘识别、:553-578 旋转门槛），
+               所以两种模式共用同一张六面图，只是罗盘要求绕该面法线旋转、加速度计要求保持静止。 -->
+          <div v-if="calibrationType === 'accel' || calibrationType === 'mag'" class="calib-visual" :class="{ 'calib-visual--active': calibrationBusy }">
+            <CalibrationFaces
+                :states="faceStates"
+                :current="currentFace"
+                :mode="calibrationType"
+                :busy="calibrationBusy"
+                :title="calibrationType === 'mag' ? '罗盘六面旋转' : '加速度计六面静止'"
+            />
           </div>
-          <div v-if="calibrationType === 'mag'" class="mag-visual">
-            <div class="mag-compass" :class="{ 'mag-compass--active': calibrationBusy }"><span class="mag-compass-arrow">↻</span><span>旋转</span></div>
-            <div class="calib-signal-line"><span class="signal-box" :class="magSignalClass" />{{ magGuide }}</div>
-          </div>
-          <template v-if="calibrationType === 'accel'">
-            <div class="calib-progress-heading"><span>当前面采样进度</span><strong class="dsh-num">{{ calibProgress === null ? '—' : `${Math.min(calibProgress, 100)}%` }}</strong></div>
+          <template v-if="calibrationType === 'accel' || calibrationType === 'mag'">
+            <div class="calib-progress-heading"><span>{{ calibrationType === 'mag' ? '当前面旋转采样进度' : '当前面采样进度' }}</span><strong class="dsh-num">{{ calibProgress === null ? '—' : `${Math.min(calibProgress, 100)}%` }}</strong></div>
             <el-progress :percentage="calibProgress === null ? 0 : Math.min(calibProgress, 100)" :status="calibrationPhase === 'failed' ? 'exception' : calibrationPhase === 'done' ? 'success' : undefined" :show-text="false" class="calib-progress" />
             <div class="calib-progress-heading"><span>六面完成度</span><strong class="dsh-num">{{ completedFaceCount }}/6</strong></div>
             <el-progress :percentage="faceOverallProgress" :status="calibrationPhase === 'failed' ? 'exception' : calibrationPhase === 'done' ? 'success' : undefined" :show-text="false" class="calib-progress calib-progress--overall" />
@@ -100,11 +97,13 @@ import { ElMessage } from 'element-plus'
 import PrototypeNotice from './PrototypeNotice.vue'
 import TaskHeader from './task-header.vue'
 import EmptyStateAction from './empty-state-action.vue'
+import CalibrationFaces from './calibration-faces.vue'
 import { MAVLINK_MSG_ID } from '../utils/mavlink-protocol.js'
 import { decodeMessage, encodeFields } from '../protocol/mav-decoder.js'
 import { calibrationListCommand, calibrationSaveCommand } from '../utils/console-session.js'
 import { parseImuEcho, summarizeImu, sixFaceProgress } from '../utils/calibration-diagnostics.js'
 import { describeCalibEvent, isCalibTerminal, parseCalibStatus } from '../utils/calibration-feed.js'
+import { CALIBRATION_FACES, faceLabel, missingFaceText } from '../utils/calibration-faces.js'
 
 const mav = inject('mavlink')
 const fc = inject('fcconfig', null)
@@ -122,25 +121,19 @@ const noticeItems = [
 ]
 const calibrationItems = [
   { key: 'gyro', label: '陀螺仪', command: 1, params: { param1: 1 }, steps: ['机体水平放置并保持静止', '点击开始，等待 [cal] calibration started: 2 gyro', '保持不动直到 [cal] calibration done'] },
-  { key: 'accel', label: '加速度计', command: 1, params: { param5: 1 }, steps: ['点击开始校准', '按 [cal] 提示依次放置 up/down/left/right/front/back', '每个姿态静止到 side done'] },
-  { key: 'mag', label: '罗盘', command: 1, params: { param2: 1 }, steps: ['点击开始校准', '按 [cal] 播报旋转各个轴向', '等待 calibration done 播报'] },
+  { key: 'accel', label: '加速度计', command: 1, params: { param5: 1 }, steps: ['点击开始校准', '按 [cal] 提示依次把六个面摆到位（up/down/left/right/front/back）', '每个姿态保持静止到 side done，图里会标出已完成和还缺哪个面'] },
+  { key: 'mag', label: '罗盘', command: 1, params: { param2: 1 }, steps: ['点击开始校准', '先按 [cal] 提示把某个面摆到位（六个面都要，顺序不限）', '每个面绕它自己的法线旋转一整圈，图里会标出已完成和还缺哪个面', '六面都有 side done 后飞控求解椭球并播报 calibration done'] },
   { key: 'level', label: '水平校准', command: 1, params: { param5: 2 }, steps: ['将机体按水平飞行方向放在平面上', '点击开始校准', '保持不动直到 [cal] calibration done: level'] },
 ]
-const calibrationFaces = [
-  { key: 'up', label: '朝上', glyph: '↑' }, { key: 'down', label: '朝下', glyph: '↓' },
-  { key: 'left', label: '朝左', glyph: '←' }, { key: 'right', label: '朝右', glyph: '→' },
-  { key: 'front', label: '朝前', glyph: '↗' }, { key: 'back', label: '朝后', glyph: '↙' },
-]
+const calibrationFaces = CALIBRATION_FACES
 const calibrationType = ref('gyro')
 const selectedCalibration = computed(() => calibrationItems.find((x) => x.key === calibrationType.value) || calibrationItems[0])
 const faceStates = reactive(Object.fromEntries(calibrationFaces.map((face) => [face.key, { state: 'idle' }])))
 const currentFace = ref('')
 const completedFaceCount = computed(() => calibrationFaces.filter((face) => faceStates[face.key].state === 'done').length)
 const faceOverallProgress = computed(() => sixFaceProgress(faceStates, currentFace.value, calibProgress.value))
-const magGuide = computed(() => currentFace.value ? `已识别${faceLabel(currentFace.value)}，请沿该姿态旋转机体` : calibrationBusy.value ? '等待飞控识别姿态后开始旋转' : '开始后按飞控提示旋转机体')
-const magSignalClass = computed(() => calibrationPhase.value === 'done' ? 'signal-box--green' : calibrationBusy.value && currentFace.value ? 'signal-box--red' : 'signal-box--idle')
-function faceLabel(key) { return calibrationFaces.find((face) => face.key === key)?.label || key }
-function faceStateLabel(state) { return state === 'done' ? '已完成' : state === 'active' ? '保持不动' : '待校准' }
+/** 还缺哪些面：让人知道少转了哪个方向（文案与统计都在 calibration-faces.js 里，可自测） */
+const missingFaceHint = computed(() => missingFaceText(faceStates))
 // 本地姿态判定：用实时加速度估计机体当前倒向哪一面，并对照固件采样阈值
 // （S5_SENSOR_CALIBRATION 文档：目标轴绝对值 ≥8.8 m/s²、其余两轴 ≤2.0 m/s²）。
 // accel 单位随消息不同（SCALED_IMU/RAW_IMU 为 mG、HIGHRES_IMU 为 m/s²），按量级换算。
@@ -300,13 +293,17 @@ function recordCalibText(text) {
     // 固件每 20ms 取样、每面需要 200 点；没有 side done 说明飞控仍在等稳定数据。
     faceStallTimer = setTimeout(() => {
       if (calibrationBusy.value && lastCalib.value === evt.raw) {
-        calibrationReply.value = calibrationType.value === 'accel'
-          ? `${describeCalibEvent(evt)}；8 秒内没有后续校准播报。固件每面采 200 点、每 20 ms 执行一次，但仅在姿态持续达标且抖动检测通过时采样；前 20 点才播报 10%。姿态识别使用 sensor_imu0，实际采样使用 sensor_imu0_0，后者读取失败会直接返回而不报错。请先拆桨，把机体放稳；若仍无进度，点击取消并等待飞控确认，再点击「读取 IMU 采样诊断」。该诊断直接读取两个主题，不依赖 MAVLink 实时 IMU 遥测。${localPoseCheck.value.text}`
+        const stalled = calibrationType.value === 'accel' || calibrationType.value === 'mag'
+        const why = calibrationType.value === 'mag'
+          ? '罗盘每个面要绕该面法线持续旋转（固件按 |该轴角速度| ≥ 0.5 rad/s 累积采样），静止不动不会有进度。'
+          : '固件每面采 200 点、每 20 ms 执行一次，但仅在姿态持续达标且抖动检测通过时采样；前 20 点才播报 10%。'
+        calibrationReply.value = stalled
+          ? `${describeCalibEvent(evt)}；8 秒内没有后续校准播报。${why}${missingFaceHint.value}。姿态识别使用 sensor_imu0，实际采样使用 sensor_imu0_0，后者读取失败会直接返回而不报错。请先拆桨、把机体放稳；若仍无进度，点击取消并等待飞控确认，再点击「读取 IMU 采样诊断」。该诊断直接读取两个主题，不依赖 MAVLink 实时 IMU 遥测。${localPoseCheck.value.text}`
           : describeCalibEvent(evt)
       }
     }, 8000)
   }
-  if (evt.kind === 'progress' && calibrationType.value === 'accel') {
+  if (evt.kind === 'progress' && (calibrationType.value === 'accel' || calibrationType.value === 'mag')) {
     if (currentFace.value && faceStates[currentFace.value]) faceStates[currentFace.value].state = 'active'
   }
   if (evt.kind === 'sideDone' && (calibrationType.value === 'accel' || calibrationType.value === 'mag')) {
@@ -319,7 +316,9 @@ function recordCalibText(text) {
   if (isCalibTerminal(evt)) {
     calibrationBusy.value = false
     calibrationPhase.value = evt.kind
-    if (evt.kind === 'done' && calibrationType.value === 'accel') calibrationFaces.forEach((face) => { faceStates[face.key].state = 'done' })
+    // done 只由固件在六面都完成后播报（accel 见 mavproxy_cmd.c:423、mag 见 :628-633 → :655），
+    // 所以两类都可以放心把六面标成已完成。
+    if (evt.kind === 'done' && (calibrationType.value === 'accel' || calibrationType.value === 'mag')) calibrationFaces.forEach((face) => { faceStates[face.key].state = 'done' })
     if (evt.kind === 'failed' || evt.kind === 'cancelled') calibrationFaces.forEach((face) => { if (faceStates[face.key].state === 'active') faceStates[face.key].state = 'idle' })
     if (evt.kind === 'done') { calibProgress.value = 100; calibrationStep.value = 3 }
     stopListening()
@@ -484,25 +483,8 @@ onUnmounted(() => { clearInterval(liveTimer); stopListening(); if (waveBusy.valu
 .reply { min-height:48px; max-height:220px; overflow:auto; padding:10px; background:var(--dsh-surface-2); color:var(--dsh-text-2); white-space:pre-wrap; font:12px monospace }
 .diag-line { margin-top:8px; color:var(--dsh-text-2); font:12px monospace }.diag-line--ok { color:var(--dsh-success) }
 .calib-visual { margin:10px 0 14px; padding:12px; border:1px solid var(--dsh-border); background:var(--dsh-surface-2); border-radius:6px }
-.airframe-diagram { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px }
-.face-cell { position:relative; min-height:76px; padding:8px 6px; text-align:center; border:1px solid var(--dsh-border); border-radius:6px; background:var(--dsh-surface); transition:border-color .15s, background .15s }
-.face-cell--current { border-color:var(--dsh-warning-fill); box-shadow:0 0 0 1px var(--dsh-warning-fill) inset }
-.face-cell--active { background:color-mix(in srgb, var(--dsh-danger) 12%, var(--dsh-surface)); border-color:var(--dsh-danger) }
-.face-cell--done { background:color-mix(in srgb, var(--dsh-success) 12%, var(--dsh-surface)); border-color:var(--dsh-success) }
-.face-signal { width:10px; height:10px; margin:0 auto 3px; border-radius:50%; background:var(--dsh-text-3) }
-.face-signal--red { background:var(--dsh-danger); box-shadow:0 0 8px color-mix(in srgb, var(--dsh-danger) 70%, transparent) }
-.face-signal--green { background:var(--dsh-success); box-shadow:0 0 8px color-mix(in srgb, var(--dsh-success) 70%, transparent) }
-.face-glyph { font-size:22px; line-height:24px; color:var(--dsh-text-1) }
-.face-name { font-size:12px; color:var(--dsh-text-1) }
-.face-status { margin-top:2px; font-size:11px; color:var(--dsh-text-2) }
-.calib-signal-line { display:flex; align-items:center; gap:7px; margin-top:10px; font:12px monospace; color:var(--dsh-text-2) }
-.signal-box { width:12px; height:12px; border-radius:3px; background:var(--dsh-text-3) }
-.signal-box--red { background:var(--dsh-danger) }
-.signal-box--green { background:var(--dsh-success) }
-.mag-visual { display:flex; align-items:center; gap:14px; margin:10px 0 14px; padding:12px; border:1px solid var(--dsh-border); background:var(--dsh-surface-2); border-radius:6px }
-.mag-compass { display:flex; flex-direction:column; align-items:center; justify-content:center; width:82px; height:82px; border:2px solid var(--dsh-border); border-radius:50%; color:var(--dsh-text-2); font-size:12px }
-.mag-compass--active { border-color:var(--dsh-danger); color:var(--dsh-danger); box-shadow:0 0 10px color-mix(in srgb, var(--dsh-danger) 55%, transparent) }
-.mag-compass-arrow { font-size:36px; line-height:38px }
+/* 六面图与还缺哪一面的统计都收在 calibration-faces.vue（自测覆盖 src/utils/calibration-faces.js）；
+   这里不再重复定义 .face-cell / .calib-signal-line，免得两套样式互相漂移。 */
 .calib-progress-heading { display:flex; justify-content:space-between; margin:8px 0 4px; color:var(--dsh-text-2); font-size:12px }
 .calib-progress-heading strong { color:var(--dsh-text-1); font-size:var(--dsh-font); font-weight:600 }
 .calib-progress { margin-bottom:10px }
