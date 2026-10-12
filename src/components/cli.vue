@@ -53,6 +53,9 @@ let themeObserver = null
 let motionQuery = null
 let inputDisposable = null
 let lineBuf = ''
+/* 行内编辑的光标位置（0..lineBuf.length）。←/→ 的转义序列必须在这里拦下：
+   它们若漏到粘贴过滤器，ESC 被剥掉后 "[C"/"[D" 会当文本插进行里，光标也只能待在行尾。 */
+let cursorPos = 0
 const commandHistory = []
 let historyIndex = -1
 
@@ -74,7 +77,7 @@ function onEchoChange(v) {
 function sendLine() {
   if (!mav.connected.value || !term) return
   const line = lineBuf
-  lineBuf = ''
+  lineBuf = ''; cursorPos = 0
   historyIndex = -1
   if (line.trim()) { commandHistory.unshift(line); if (commandHistory.length > 50) commandHistory.pop() }
   if (localEcho.value) term.write('\r\n')
@@ -84,6 +87,18 @@ function replaceInput(text) {
   if (!localEcho.value) return
   term.write(`\r\x1b[2K${text}`)
   lineBuf = text
+  cursorPos = text.length // 历史召回后光标停在行尾，接着改末尾是最常见动作
+}
+/* 整行重画并把光标放回 cursorPos：行中插入/删除后靠它复位，简单但总是正确 */
+function paintLine() {
+  term.write(`\r\x1b[2K${lineBuf}`)
+  if (cursorPos < lineBuf.length) term.write(`\x1b[${lineBuf.length - cursorPos}D`)
+}
+function moveCursor(delta) {
+  const next = Math.min(Math.max(cursorPos + delta, 0), lineBuf.length)
+  if (next === cursorPos) return
+  cursorPos = next
+  paintLine()
 }
 
 function onKey(data) {
@@ -96,18 +111,35 @@ function onKey(data) {
     else { mav.cli.send('\r'); lineBuf = '' }
     return
   }
-  if (data === '\x7f' || data === '\b') { // Backspace / DEL
-    if (localEcho.value && lineBuf.length > 0) {
-      lineBuf = lineBuf.slice(0, -1)
-      term.write('\b \b')
-    } else if (!localEcho.value) {
+  if (localEcho.value) {
+    // 行内编辑键：只在本地回显（行模式）下有意义；透传模式这些序列原样交给飞控 shell
+    if (data === '\x1b[D' || data === '\x1bOD') { moveCursor(-1); return } // ←
+    if (data === '\x1b[C' || data === '\x1bOC') { moveCursor(1); return }  // →
+    if (data === '\x1b[H' || data === '\x1b[1~') { cursorPos = 0; paintLine(); return } // Home
+    if (data === '\x1b[F' || data === '\x1b[4~') { cursorPos = lineBuf.length; paintLine(); return } // End
+    if (data === '\x1b[3~') { // Delete：删光标处的字符
+      if (cursorPos < lineBuf.length) {
+        lineBuf = lineBuf.slice(0, cursorPos) + lineBuf.slice(cursorPos + 1)
+        paintLine()
+      }
+      return
+    }
+  }
+  if (data === '\x7f' || data === '\b') { // Backspace：删光标前一个字符（不是只删行尾）
+    if (localEcho.value) {
+      if (cursorPos > 0) {
+        lineBuf = lineBuf.slice(0, cursorPos - 1) + lineBuf.slice(cursorPos)
+        cursorPos--
+        paintLine()
+      }
+    } else {
       mav.cli.send('\x7f')
     }
     return
   }
   if (data === '\x03') { // 固件约定回车打断；保留 Ctrl+C 兼容发送回车
     mav.cli.send('\r')
-    lineBuf = ''
+    lineBuf = ''; cursorPos = 0
     return
   }
   if (data === '\x1b[A' || data === '\x1b[B') {
@@ -127,8 +159,11 @@ function onKey(data) {
     : data
   if (!printable) return
   if (localEcho.value) {
-    lineBuf += printable
-    term.write(printable)
+    // 插到光标位置：光标在行尾时直接续写（常规打字零重画），行中插入才整行重画
+    lineBuf = lineBuf.slice(0, cursorPos) + printable + lineBuf.slice(cursorPos)
+    cursorPos += printable.length
+    if (cursorPos === lineBuf.length) term.write(printable)
+    else paintLine()
   } else {
     mav.cli.send(printable)
   }
@@ -183,7 +218,7 @@ onMounted(() => {
   unsubscribeHistory = cliHistory.subscribe(change => {
     if (change.type === 'reset') {
       term?.reset()
-      lineBuf = ''
+      lineBuf = ''; cursorPos = 0
       historyIndex = -1
     }
     writeToTerminal(change.text)
@@ -193,7 +228,7 @@ onMounted(() => {
 // 连接状态变化时同步键盘可用性
 watch(() => mav.connected.value, (v) => {
   if (term) term.options.disableStdin = !v
-  if (!v) lineBuf = ''
+  if (!v) { lineBuf = ''; cursorPos = 0 }
 })
 
 onBeforeUnmount(() => {
