@@ -42,6 +42,7 @@ import {
   createDownloadState, acceptBurstPacket, assertDownloadComplete,
 } from '../utils/ftp-download.js'
 import { decodeParamValue } from '../utils/param-value.js'
+import { attitudeFromQuaternion } from '../utils/attitude-quat.js'
 import {
   describeMode, isArmed, systemState, severity,
   gpsFix, landedState, vtolState,
@@ -116,12 +117,48 @@ function createInstance() {
     error: null,
     identity: { detected: false, sysid: null, compid: null, type: null, autopilot: null, systemStatus: null, systemStatusLabel: '—' },
     heartbeat: { lastAt: 0, ageMs: null, healthy: false },
-    // attitude 只由 ATTITUDE(msgid 30) 点亮，imu 是 SCALED_IMU/RAW_IMU/HIGHRES_IMU 的独立通道。
-    // 两者过去共用一个键：飞控不推 ATTITUDE 时，姿态读数照样被判成"新鲜"，死值 0 看着像实时值。
+    // attitude 由 ATTITUDE(30) 或 ATTITUDE_QUATERNION(31) 点亮（两者是同一件事的两个通道），
+    // imu 是 SCALED_IMU/RAW_IMU/HIGHRES_IMU 的独立通道。
+    // 两者过去共用一个键：飞控不推姿态时，读数照样被判成"新鲜"，死值 0 看着像实时值。
     freshness: { vfrHud: 0, attitude: 0, imu: 0, gps: 0, battery: 0, sysStatus: 0, rc: 0, servos: 0, statusText: 0 },
     valid: { vfrHud: false, attitude: false, imu: false, gps: false, battery: false, sysStatus: false, rc: false, servos: false },
   })
   let deviceTicker = null
+
+  /**
+   * 姿态来源（权威源 + 降级）：
+   * - 'quaternion'：收到过 ATTITUDE_QUATERNION(31)，它就是权威源（本固件的数传走这条）；
+   * - 'euler'：只收到过 ATTITUDE(30)，按优先级降级到欧拉角通道；
+   * - 'none'：整段会话都没收到姿态。
+   * `lastAt` 只由权威源刷新：一旦权威源静默超过 ATTITUDE_AUTHORITY_STALE_MS，
+   * 页面应当显示"最后已知姿态（来源已静默）"，而不是继续把旧值当实时读数。
+   */
+  const ATTITUDE_AUTHORITY_STALE_MS = 2500
+  // reactive: 页面要能看到权威源什么时候切换/静默，普通对象改了不会触发渲染
+  const _attSource = reactive({ authority: 'none', lastAt: 0, lastMsgId: null })
+
+  /**
+   * 乱序保护：只丢弃"小幅回退"的姿态帧（同一来源的乱序），其它情况一律接受。
+   *
+   * 三条经验，缺一条都会把正常帧丢掉、姿态整个卡死：
+   *  1. 换来源时不比较——两条通道的 time_boot_ms 来自不同固件时基
+   *     （本固件四元数那条是 systime_now_us() 截成 u32，见 task_comm.c:307），跨通道比较没有意义。
+   *  2. 只有"略微回退"才算乱序（默认 <1 s）。因为 time_boot_ms 是 u32，约 49.7 天回绕一次；
+   *     回绕时数值会从 42 亿掉到个位数，用无符号差值看其实是前进。反过来，如果某帧数值突然
+   *     掉了几十亿（截断时钟重置/垃圾帧），那是坏帧，绝对不能覆盖当前姿态。
+   *  3. 差值用 u32 回绕安全的有符号比较。
+   */
+  function isStaleAttitudeFrame(timeBootMs, msgid) {
+    const prevSource = _attSource.lastMsgId
+    if (prevSource !== msgid) return false          // 换了来源：时基不可比，不比较
+    const prev = data.attitude.timeBootMs
+    if (!Number.isFinite(prev) || !prev) return false
+    if (!Number.isFinite(timeBootMs)) return false
+    const delta = (timeBootMs - prev) | 0             // u32 回绕安全
+    if (delta >= 0) return false                     // 前进（含回绕后的前进）
+    if (Math.abs(delta) > 1000) return false         // 巨大回退＝坏帧，按"接受"处理，不能让姿态僵在旧值
+    return true                                      // 小幅回退＝同来源乱序，丢弃
+  }
 
   // 飞控身份 + 飞行状态（全部来自 HEARTBEAT；顶栏解锁/模式显示就读这里）
   const vehicle = reactive({
@@ -140,7 +177,8 @@ function createInstance() {
 
   // 常用实时数据。键名是页面契约：attitude / vfrHud / battery / gps / sysStatus 不可随意改
   const data = reactive({
-    attitude:   { roll: 0, pitch: 0, yaw: 0, rollspeed: 0, pitchspeed: 0, yawspeed: 0, timeBootMs: 0 }, // deg、deg/s
+    // 姿态：优先 ATTITUDE_QUATERNION(31)，没有它才降级用 ATTITUDE(30)（见 _attSource 与 handleMessage）
+    attitude:   { roll: 0, pitch: 0, yaw: 0, rollspeed: 0, pitchspeed: 0, yawspeed: 0, timeBootMs: 0, quat: null, quatOffsetApplied: false },
     imu:         { accel: [null, null, null], gyro: [null, null, null], mag: [null, null, null], timeBootMs: 0, source: '', lastAt: 0 },
     vfrHud:     { airspeed: 0, groundspeed: 0, heading: 0, throttle: 0, alt: 0, climb: 0 },
     // 本固件不周期发送 BATTERY_STATUS，电压/电流/剩余量只能来自 SYS_STATUS（见 vendor 说明）
@@ -1825,29 +1863,46 @@ function createInstance() {
           break
         }
         case MAVLINK_MSG_ID.ATTITUDE: {
+          // 降级通道：新固件优先推 31，只有老固件/对端不发四元数时这条才会来（见下面的 _attSource）。
+          // 权威源一旦收到过 31，就不再让 30 抢显示。
           const a = data.attitude
-          a.timeBootMs = R(raw, 'time_boot_ms')
+          const t30 = R(raw, 'time_boot_ms')
+          if (isStaleAttitudeFrame(t30, MAVLINK_MSG_ID.ATTITUDE)) break
+          a.timeBootMs = t30
           a.roll = R(raw, 'roll') * R2D
           a.pitch = R(raw, 'pitch') * R2D
           a.yaw = R(raw, 'yaw') * R2D
           a.rollspeed = R(raw, 'rollspeed') * R2D
           a.pitchspeed = R(raw, 'pitchspeed') * R2D
           a.yawspeed = R(raw, 'yawspeed') * R2D
+          if (_attSource.authority !== 'quaternion') {
+            _attSource.authority = 'euler'
+            _attSource.lastAt = Date.now()
+            _attSource.lastMsgId = MAVLINK_MSG_ID.ATTITUDE
+          }
           break
         }
         case MAVLINK_MSG_ID.ATTITUDE_QUATERNION: {
-          // 这台飞控的实际姿态以四元数下发（msgid 31），不推欧拉角的 msgid 30。
-          // 用标准 3-2-1(ZYX) 转成与 ATTITUDE 同定义的 roll/pitch/yaw，写进同一个 data.attitude。
+          // 这台 FMT 的数传固件推四元数（msgid 31）而不推欧拉角（msgid 30）。
+          // 转换公式与 repr_offset_q 语义都固定在 utils/attitude-quat.js，并与固件
+          // module/math/quaternion.c:148-167 的 quaternion_toEuler 逐项对齐。
           const a = data.attitude
-          const n = Math.hypot(R(raw, 'q1'), R(raw, 'q2'), R(raw, 'q3'), R(raw, 'q4')) || 1
-          const w = R(raw, 'q1') / n, x = R(raw, 'q2') / n, y = R(raw, 'q3') / n, z = R(raw, 'q4') / n
-          a.timeBootMs = R(raw, 'time_boot_ms')
-          a.roll = Math.atan2(2 * (w * x + y * z), 1 - 2 * (x * x + y * y)) * R2D
-          a.pitch = Math.asin(Math.max(-1, Math.min(1, 2 * (w * y - z * x)))) * R2D
-          a.yaw = Math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z)) * R2D
+          const att = attitudeFromQuaternion(raw)
+          if (!att) break // 四元数非法（模长≈0/含 NaN）：不覆盖上一帧，也不冒充合法姿态
+          const t31 = R(raw, 'time_boot_ms')
+          if (isStaleAttitudeFrame(t31, MAVLINK_MSG_ID.ATTITUDE_QUATERNION)) break
+          a.timeBootMs = t31
+          a.roll = att.roll
+          a.pitch = att.pitch
+          a.yaw = att.yaw
           a.rollspeed = R(raw, 'rollspeed') * R2D
           a.pitchspeed = R(raw, 'pitchspeed') * R2D
           a.yawspeed = R(raw, 'yawspeed') * R2D
+          a.quat = att.quat
+          a.quatOffsetApplied = att.offsetApplied
+          _attSource.authority = 'quaternion'
+          _attSource.lastAt = Date.now()
+          _attSource.lastMsgId = MAVLINK_MSG_ID.ATTITUDE_QUATERNION
           break
         }
         case MAVLINK_MSG_ID.VFR_HUD: {
@@ -2191,6 +2246,10 @@ function createInstance() {
     vehicle.type = 0; vehicle.autopilot = 0; vehicle.baseMode = 0; vehicle.customMode = 0
     vehicle.armed = false; vehicle.modeCode = 'UNKNOWN_0'; vehicle.modeName = '未知'
     vehicle.systemStatus = 0; vehicle.systemStatusLabel = '—'; vehicle.lastHeartbeatAt = 0
+    // 姿态来源跟着设备会话一起清：换一台飞控后不能拿上一台的"权威源"结论继续用
+    _attSource.authority = 'none'
+    _attSource.lastAt = 0
+    _attSource.lastMsgId = null
     data.statusText = ''; data.statusLogs.splice(0)
   }
 
@@ -2369,6 +2428,20 @@ function createInstance() {
     // 链路统计：解析帧数 / CRC 错误数 / 自愈学到的 crc_extra 数（协议健康度看这里）
     stats: readonly(linkStats),
     deviceState: readonly(deviceState),
+    /**
+     * 姿态来源：优先 ATTITUDE_QUATERNION(31)，没有才降级到 ATTITUDE(30)。
+     * 页面用它如实标注读数来自哪条消息，避免"换了固件之后姿态其实一直是 0"没人发现。
+     */
+    attitudeSource: computed(() => ({
+      authority: _attSource.authority,
+      lastMsgId: _attSource.lastMsgId,
+      lastAt: _attSource.lastAt,
+      ageMs: _attSource.lastAt ? Date.now() - _attSource.lastAt : null,
+      stale: _attSource.authority !== 'none' && (!_attSource.lastAt || Date.now() - _attSource.lastAt > ATTITUDE_AUTHORITY_STALE_MS),
+      label: _attSource.authority === 'quaternion' ? 'ATTITUDE_QUATERNION(31)'
+        : _attSource.authority === 'euler' ? 'ATTITUDE(30) 降级'
+          : '未收到姿态',
+    })),
     canOperate: computed(() => !firmwareExclusive.value && !reconnecting.value && deviceState.phase === 'online' && deviceState.heartbeat.healthy),
     canWrite: computed(() => !firmwareExclusive.value && !reconnecting.value && deviceState.phase === 'online' && deviceState.heartbeat.healthy && !vehicle.armed),
     // 链路体检（S0a）：按 msgid 的累计收发快照，解析器自己维护，页面每次现取，不留副本
