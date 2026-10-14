@@ -5,10 +5,12 @@
       <defs>
         <clipPath :id="clipId"><circle :cx="CX" :cy="CY" :r="R" /></clipPath>
         <linearGradient :id="skyId" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#2f7fd0" /><stop offset="100%" stop-color="#8fc4ea" />
+          <stop offset="0%" stop-color="#2f7fd0" />
+          <stop offset="100%" stop-color="#8fc4ea" />
         </linearGradient>
         <linearGradient :id="groundId" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#8a5a2b" /><stop offset="100%" stop-color="#4a3016" />
+          <stop offset="0%" stop-color="#8a5a2b" />
+          <stop offset="100%" stop-color="#4a3016" />
         </linearGradient>
       </defs>
 
@@ -17,21 +19,38 @@
            - 旋转层：顶部三角指针 + 地平线 + 俯仰梯尺（一起按 -roll 转，俯仰再平移地平线本体） -->
       <g class="roll-scale">
         <g v-for="m in ROLL_SCALE_MARKS" :key="`r-${m.deg}`" :transform="`rotate(${m.deg} ${CX} ${CY})`">
-          <line :x1="CX" :y1="CY - R + 1" :x2="CX" :y2="CY - R + (m.major ? 13 : 7)" class="roll-tick" :class="{ 'is-major': m.major }" />
+          <line
+            :x1="CX"
+            :y1="CY - R + 1"
+            :x2="CX"
+            :y2="CY - R + (m.major ? 13 : 7)"
+            class="roll-tick"
+            :class="{ 'is-major': m.major }"
+          />
         </g>
       </g>
 
       <g :clip-path="`url(#${clipId})`">
         <g :transform="`rotate(${-safeRoll} ${CX} ${CY})`">
           <!-- 指针在天空/地面上都会经过，所以用白描边保证两边都看得见 -->
-          <path :d="`M${CX} ${CY - R + 2} L${CX - 8} ${CY - R + 17} L${CX + 8} ${CY - R + 17} Z`" class="roll-pointer" />
+          <path
+            :d="`M${CX} ${CY - R + 2} L${CX - 8} ${CY - R + 17} L${CX + 8} ${CY - R + 17} Z`"
+            class="roll-pointer"
+          />
           <!-- 地平线本体：在旋转层里再按俯仰上下平移 -->
           <g :transform="`translate(0 ${horizonY})`">
             <rect :x="CX - 200" :y="CY - 400" width="400" height="400" :fill="`url(#${skyId})`" />
             <rect :x="CX - 200" :y="CY" width="400" height="400" :fill="`url(#${groundId})`" />
             <line :x1="CX - 200" :y1="CY" :x2="CX + 200" :y2="CY" class="horizon-line" />
             <g v-for="l in ladder" :key="`l-${l.deg}`" :transform="`translate(0 ${l.y})`">
-              <line :x1="CX - l.width / 2" y1="0" :x2="CX + l.width / 2" y2="0" class="ladder-line" :class="{ 'is-pitch': l.isPitch }" />
+              <line
+                :x1="CX - l.width / 2"
+                y1="0"
+                :x2="CX + l.width / 2"
+                y2="0"
+                class="ladder-line"
+                :class="{ 'is-pitch': l.isPitch }"
+              />
             </g>
             <!-- 平飞附近地平线就在中心，补一对小记号，免得看着像"少了一条线" -->
             <g v-if="showHorizonMark">
@@ -55,9 +74,7 @@
 </template>
 <script setup>
 import { computed } from 'vue'
-import {
-  PX_PER_DEG, ROLL_SCALE_MARKS, horizonOffsetY, pitchLadder,
-} from '../utils/attitude-instrument.js'
+import { PX_PER_DEG, ROLL_SCALE_MARKS, horizonOffsetY, pitchLadder } from '../utils/attitude-instrument.js'
 
 const props = defineProps({
   /** 滚转角（度，右滚为正） */
@@ -98,29 +115,75 @@ const showHorizonMark = computed(() => Math.abs(safePitch.value) <= 2)
 const centerLine = computed(() => ladder.value.filter((l) => l.isPitch)[0] || null)
 const probeText = computed(() => {
   const c = centerLine.value
-  return `滚转 ${safeRoll.value.toFixed(1)}° / 俯仰 ${safePitch.value.toFixed(1)}°`
-    + ` · 中心线 = ${c ? `${c.deg}°` : '地平线'}`
-    + ` · 地平线偏移 ${horizonY.value.toFixed(0)}px`
-    + (props.valid ? '' : ' · 尚未收到可信姿态')
+  return (
+    `滚转 ${safeRoll.value.toFixed(1)}° / 俯仰 ${safePitch.value.toFixed(1)}°` +
+    ` · 中心线 = ${c ? `${c.deg}°` : '地平线'}` +
+    ` · 地平线偏移 ${horizonY.value.toFixed(0)}px` +
+    (props.valid ? '' : ' · 尚未收到可信姿态')
+  )
 })
 // 盘上不画数字，但读屏/无障碍仍要能报出姿态
-const ariaLabel = computed(() => (props.valid
-  ? `姿态仪表：滚转 ${safeRoll.value.toFixed(0)} 度、俯仰 ${safePitch.value.toFixed(0)} 度`
-  : '姿态仪表：尚未收到姿态数据'))
+const ariaLabel = computed(() =>
+  props.valid
+    ? `姿态仪表：滚转 ${safeRoll.value.toFixed(0)} 度、俯仰 ${safePitch.value.toFixed(0)} 度`
+    : '姿态仪表：尚未收到姿态数据'
+)
 </script>
 <style scoped>
-.att-instrument{width:100%;height:100%}
-.att-instrument svg{width:100%;height:100%;display:block;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35))}
-.att-instrument--invalid svg{opacity:.55}
-.bezel{fill:none;stroke:var(--dsh-border-strong, var(--dsh-border));stroke-width:2}
-.horizon-line{stroke:#ffffff;stroke-width:1.6;stroke-opacity:.9}
-.ladder-line{stroke:#ffffff;stroke-width:1.2;stroke-opacity:.85}
+.att-instrument {
+  width: 100%;
+  height: 100%;
+}
+.att-instrument svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
+}
+.att-instrument--invalid svg {
+  opacity: 0.55;
+}
+.bezel {
+  fill: none;
+  stroke: var(--dsh-border-strong, var(--dsh-border));
+  stroke-width: 2;
+}
+.horizon-line {
+  stroke: #ffffff;
+  stroke-width: 1.6;
+  stroke-opacity: 0.9;
+}
+.ladder-line {
+  stroke: #ffffff;
+  stroke-width: 1.2;
+  stroke-opacity: 0.85;
+}
 /* 当前俯仰那条线加粗，它就是盘上唯一的读数指示（不写字） */
-.ladder-line.is-pitch{stroke-width:2.2;stroke-opacity:1}
+.ladder-line.is-pitch {
+  stroke-width: 2.2;
+  stroke-opacity: 1;
+}
 /* 刻度线会压在地平线（蓝/棕两种底色）上，统一白色 + 深色描边保证两边都读得清 */
-.roll-tick{stroke:#ffffff;stroke-width:1.4;paint-order:stroke}
-.roll-tick.is-major{stroke:#ffffff;stroke-width:2.4}
+.roll-tick {
+  stroke: #ffffff;
+  stroke-width: 1.4;
+  paint-order: stroke;
+}
+.roll-tick.is-major {
+  stroke: #ffffff;
+  stroke-width: 2.4;
+}
 /* 指针会转到天空和地面上，白描边保证两边都清楚 */
-.roll-pointer{fill:var(--dsh-warning-fill);stroke:#ffffff;stroke-width:1.2;paint-order:stroke}
-.aircraft-symbol{stroke:var(--dsh-warning-fill);stroke-width:3;stroke-linecap:round;fill:var(--dsh-warning-fill)}
+.roll-pointer {
+  fill: var(--dsh-warning-fill);
+  stroke: #ffffff;
+  stroke-width: 1.2;
+  paint-order: stroke;
+}
+.aircraft-symbol {
+  stroke: var(--dsh-warning-fill);
+  stroke-width: 3;
+  stroke-linecap: round;
+  fill: var(--dsh-warning-fill);
+}
 </style>

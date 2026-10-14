@@ -214,7 +214,9 @@
   --el-card-border-radius: var(--dsh-radius);
   --el-card-padding: var(--dsh-gap);
   box-shadow: none !important;
-  transition: border-color var(--dsh-transition), background-color var(--dsh-transition);
+  transition:
+    border-color var(--dsh-transition),
+    background-color var(--dsh-transition);
 }
 
 .el-card__header {
@@ -242,7 +244,9 @@
   border-radius: var(--dsh-radius);
 }
 
-.el-button:not(.el-button--primary):not([class*='el-button--success']):not([class*='el-button--warning']):not([class*='el-button--danger']):not([class*='el-button--info']) {
+.el-button:not(.el-button--primary):not([class*='el-button--success']):not([class*='el-button--warning']):not(
+    [class*='el-button--danger']
+  ):not([class*='el-button--info']) {
   background-color: var(--dsh-surface);
 }
 
@@ -286,7 +290,6 @@
   --el-button-active-text-color: var(--dsh-ink-on-accent);
 }
 
-
 /* 日间悬停不往更浅的 #9adcff 走（白字压它只剩 1.55:1），改成往深一档：
    #66ccff → #2f9ede（2.71）→ 再压深（约 3.4），悬停/按下在同一条白字决定里尽量分得开。 */
 :root[data-theme='light'] .el-button--primary {
@@ -319,9 +322,15 @@
   background-color: var(--dsh-accent);
   border-color: var(--dsh-accent);
 }
-.el-slider__bar { background-color: var(--dsh-accent); }
-.el-slider__button { border-color: var(--dsh-accent); }
-.el-progress-bar__inner { background-color: var(--dsh-accent); }
+.el-slider__bar {
+  background-color: var(--dsh-accent);
+}
+.el-slider__button {
+  border-color: var(--dsh-accent);
+}
+.el-progress-bar__inner {
+  background-color: var(--dsh-accent);
+}
 .el-checkbox__input.is-checked .el-checkbox__inner,
 .el-checkbox__input.is-indeterminate .el-checkbox__inner {
   background-color: var(--dsh-accent);
@@ -331,8 +340,12 @@
   background-color: var(--dsh-accent);
   border-color: var(--dsh-accent);
 }
-.el-tabs__active-bar { background-color: var(--dsh-accent); }
-.el-loading-spinner .path { stroke: var(--dsh-accent); }
+.el-tabs__active-bar {
+  background-color: var(--dsh-accent);
+}
+.el-loading-spinner .path {
+  stroke: var(--dsh-accent);
+}
 /* 按钮式单选（电池节数这类分段选择）：EP 把选中档的字色写死成白，
    日间是"亮蓝底 + 白字"（业主选定那条），夜间必须翻成近墨，所以走 --dsh-ink-on-fill。 */
 .el-radio-button__original-radio:checked + .el-radio-button__inner {
@@ -463,9 +476,23 @@
 /* ─── 六、键盘可达性：把焦点环还回来 ─── */
 /* 原 style.css 里 *:focus{outline:none} 把焦点框整个抹掉了：
    现场常用键盘在参数表里跳转，看不到焦点就是"不知道光标在哪"。 */
-:where(a, button, input, textarea, select, [tabindex], .el-button, .el-input__inner,
-  .el-select__wrapper, .el-checkbox__original, .el-radio__original, .el-tabs__item,
-  .el-switch__input, .el-menu-item, .dsh-nav-item):focus-visible {
+:where(
+  a,
+  button,
+  input,
+  textarea,
+  select,
+  [tabindex],
+  .el-button,
+  .el-input__inner,
+  .el-select__wrapper,
+  .el-checkbox__original,
+  .el-radio__original,
+  .el-tabs__item,
+  .el-switch__input,
+  .el-menu-item,
+  .dsh-nav-item
+):focus-visible {
   outline: none;
   box-shadow: var(--dsh-ring);
   border-radius: var(--dsh-radius-sm);
@@ -495,7 +522,10 @@ input:-webkit-autofill:focus {
 .dsh-theming *,
 .dsh-theming *::before,
 .dsh-theming *::after {
-  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease !important;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -524,6 +554,12 @@ input:-webkit-autofill:focus {
 .el-scrollbar__bar {
   opacity: 0.85;
 }
-.el-scrollbar__bar.is-vertical { width: 8px; }
-.el-scrollbar__bar.is-horizontal { height: 8px; }
-.el-scrollbar__thumb { background-color: var(--dsh-border-strong); }
+.el-scrollbar__bar.is-vertical {
+  width: 8px;
+}
+.el-scrollbar__bar.is-horizontal {
+  height: 8px;
+}
+.el-scrollbar__thumb {
+  background-color: var(--dsh-border-strong);
+}

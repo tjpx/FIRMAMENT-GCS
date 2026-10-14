@@ -13,7 +13,7 @@ import { CRC_EXTRA, ENUMS, MESSAGE_NAMES } from '../protocol/mavlink-table.gener
 
 /** 消息名 -> msgid（全量，覆盖协议表里的所有消息） */
 export const MAVLINK_MSG_ID = Object.freeze(
-  Object.fromEntries(Object.entries(MESSAGE_NAMES).map(([id, name]) => [name, Number(id)])),
+  Object.fromEntries(Object.entries(MESSAGE_NAMES).map(([id, name]) => [name, Number(id)]))
 )
 
 /** 常用枚举（避免在业务代码里写魔法数字） */
@@ -78,12 +78,17 @@ export function makeCrcExtraOf(table) {
 
 /** SERIAL_CONTROL 的设备号与标志位（取错值飞控会 NAK，不会静默丢帧，故保留本地常量） */
 export const SERIAL_CONTROL_DEV = {
-  TELEM1: 0, TELEM2: 1, GPS1: 2, GPS2: 3,
+  TELEM1: 0,
+  TELEM2: 1,
+  GPS1: 2,
+  GPS2: 3,
   SHELL: 10,
 }
 
 export const SERIAL_CONTROL_FLAG = {
-  REPLY: 1, EXCLUSIVE: 2, MULTI: 4,
+  REPLY: 1,
+  EXCLUSIVE: 2,
+  MULTI: 4,
 }
 
 /* ----------------------------- CRC ----------------------------- */
@@ -106,10 +111,21 @@ export function crc16Mavlink(data, start = 0, end = data.length, initial = 0xfff
  * 统一的 MAVLink 2 解析器（支持 v1 跳过 + v2 CRC 校验 + payload truncation + signature）
  * 使用状态机方式（来自原 ftp 实现，更稳健），CRC 校验走统一 MAVLINK_CRC_EXTRA 表
  */
-const S_WAIT = 0, S_LEN = 1,
-      S_V2_INCOMPAT = 2, S_V2_COMPAT = 3, S_V2_SEQ = 4, S_V2_SYSID = 5, S_V2_COMPID = 6, S_V2_MSGID = 7,
-      S_V1_SEQ = 8, S_V1_SYSID = 9, S_V1_COMPID = 10, S_V1_MSGID = 11,
-      S_PAYLOAD = 12, S_CRC = 13, S_SIGNATURE = 14
+const S_WAIT = 0,
+  S_LEN = 1,
+  S_V2_INCOMPAT = 2,
+  S_V2_COMPAT = 3,
+  S_V2_SEQ = 4,
+  S_V2_SYSID = 5,
+  S_V2_COMPID = 6,
+  S_V2_MSGID = 7,
+  S_V1_SEQ = 8,
+  S_V1_SYSID = 9,
+  S_V1_COMPID = 10,
+  S_V1_MSGID = 11,
+  S_PAYLOAD = 12,
+  S_CRC = 13,
+  S_SIGNATURE = 14
 
 export class Mavlink2Parser {
   constructor(options = {}) {
@@ -140,12 +156,20 @@ export class Mavlink2Parser {
     for (let i = 0; i < incoming.length; i++) this.process(incoming[i])
   }
 
-  feed(bytes) { this.push(bytes) }  // 兼容 ftp 命名
+  feed(bytes) {
+    this.push(bytes)
+  } // 兼容 ftp 命名
 
   process(b) {
     if (this.state === S_WAIT) {
-      if (b === 0xfd) { this.beginFrame(2); return }
-      if (b === 0xfe) { this.beginFrame(1); return }
+      if (b === 0xfd) {
+        this.beginFrame(2)
+        return
+      }
+      if (b === 0xfe) {
+        this.beginFrame(1)
+        return
+      }
       return
     }
     if (this.state === S_SIGNATURE) {
@@ -155,29 +179,69 @@ export class Mavlink2Parser {
     }
     switch (this.state) {
       case S_LEN:
-        this.len = b; this.acc(b); this.state = this.version === 2 ? S_V2_INCOMPAT : S_V1_SEQ; break
-      case S_V2_INCOMPAT: this.incompat = b; this.acc(b); this.state = S_V2_COMPAT; break
-      case S_V2_COMPAT:   this.acc(b); this.state = S_V2_SEQ; break
-      case S_V2_SEQ:      this.acc(b); this.state = S_V2_SYSID; break
-      case S_V2_SYSID:    this.sysid = b; this.acc(b); this.state = S_V2_COMPID; break
-      case S_V2_COMPID:   this.compid = b; this.acc(b); this.state = S_V2_MSGID; break
+        this.len = b
+        this.acc(b)
+        this.state = this.version === 2 ? S_V2_INCOMPAT : S_V1_SEQ
+        break
+      case S_V2_INCOMPAT:
+        this.incompat = b
+        this.acc(b)
+        this.state = S_V2_COMPAT
+        break
+      case S_V2_COMPAT:
+        this.acc(b)
+        this.state = S_V2_SEQ
+        break
+      case S_V2_SEQ:
+        this.acc(b)
+        this.state = S_V2_SYSID
+        break
+      case S_V2_SYSID:
+        this.sysid = b
+        this.acc(b)
+        this.state = S_V2_COMPID
+        break
+      case S_V2_COMPID:
+        this.compid = b
+        this.acc(b)
+        this.state = S_V2_MSGID
+        break
       case S_V2_MSGID:
-        this.msgid |= b << this.msgidShift; this.msgidShift += 8; this.acc(b)
+        this.msgid |= b << this.msgidShift
+        this.msgidShift += 8
+        this.acc(b)
         if (this.msgidShift >= 24) this.state = this.len > 0 ? S_PAYLOAD : S_CRC
         break
-      case S_V1_SEQ:    this.acc(b); this.state = S_V1_SYSID; break
-      case S_V1_SYSID:  this.sysid = b; this.acc(b); this.state = S_V1_COMPID; break
-      case S_V1_COMPID: this.compid = b; this.acc(b); this.state = S_V1_MSGID; break
-      case S_V1_MSGID:  this.msgid = b; this.acc(b); this.state = this.len > 0 ? S_PAYLOAD : S_CRC; break
+      case S_V1_SEQ:
+        this.acc(b)
+        this.state = S_V1_SYSID
+        break
+      case S_V1_SYSID:
+        this.sysid = b
+        this.acc(b)
+        this.state = S_V1_COMPID
+        break
+      case S_V1_COMPID:
+        this.compid = b
+        this.acc(b)
+        this.state = S_V1_MSGID
+        break
+      case S_V1_MSGID:
+        this.msgid = b
+        this.acc(b)
+        this.state = this.len > 0 ? S_PAYLOAD : S_CRC
+        break
       case S_PAYLOAD:
-        this.payload.push(b); this.acc(b)
+        this.payload.push(b)
+        this.acc(b)
         if (this.payload.length === this.len) this.state = S_CRC
         break
       case S_CRC:
         this.crcBytes.push(b)
         if (this.crcBytes.length === 2) this.finishCrc()
         break
-      default: this.reset()
+      default:
+        this.reset()
     }
   }
 
@@ -192,7 +256,9 @@ export class Mavlink2Parser {
     this.crcBytes = []
   }
 
-  acc(b) { if (this.validateCrc) this.crc = crcAccumulate(b, this.crc) }
+  acc(b) {
+    if (this.validateCrc) this.crc = crcAccumulate(b, this.crc)
+  }
 
   /**
    * 帧收尾，含 **crc_extra 自愈**。
@@ -213,7 +279,9 @@ export class Mavlink2Parser {
     const stats = (this.stats ??= { frames: 0, crcErrors: 0, learned: 0, byMsgid: {} })
     stats.frames++
     const one = (stats.byMsgid[msgid] ??= {
-      rx: 0, bad: 0, name: MESSAGE_NAMES[msgid] || `MSG_${msgid}`,
+      rx: 0,
+      bad: 0,
+      name: MESSAGE_NAMES[msgid] || `MSG_${msgid}`,
     })
     one.rx++
 
@@ -244,7 +312,7 @@ export class Mavlink2Parser {
       })
     }
 
-    if (this.version === 2 && (this.incompat & 0x01)) {
+    if (this.version === 2 && this.incompat & 0x01) {
       this.signatureLeft = 13
       this.state = S_SIGNATURE
     } else {
@@ -259,7 +327,10 @@ export class Mavlink2Parser {
    */
   tryLearnCrcExtra(received, bodyCrc) {
     const cand = searchCrcExtra(received, bodyCrc)
-    if (cand === undefined) { this.pendingCrc = null; return false }
+    if (cand === undefined) {
+      this.pendingCrc = null
+      return false
+    }
 
     const pending = this.pendingCrc
     if (!(pending && pending.msgid === this.msgid && pending.value === cand)) {
@@ -272,11 +343,13 @@ export class Mavlink2Parser {
     const declared = this.crcExtraOf(this.msgid)
     const name = MESSAGE_NAMES[this.msgid] || `MSG_${this.msgid}`
     if (declared === undefined) {
-      console.warn(`[mavlink] 协议表缺少 ${name}（msgid=${this.msgid}）的 crc_extra，已连续两帧反解为 ${cand}，按该值登记并启用校验`)
+      console.warn(
+        `[mavlink] 协议表缺少 ${name}（msgid=${this.msgid}）的 crc_extra，已连续两帧反解为 ${cand}，按该值登记并启用校验`
+      )
     } else {
       console.error(
         `[mavlink] crc_extra 不一致：${name} 协议表=${declared}，飞控实际=${cand}。` +
-        `已按飞控值接收（否则该消息会被静默丢弃）。请核对 vendor/mavlink 是否落后于飞控固件，并重跑 npm run gen:mavlink`,
+          `已按飞控值接收（否则该消息会被静默丢弃）。请核对 vendor/mavlink 是否落后于飞控固件，并重跑 npm run gen:mavlink`
       )
     }
     learnCrcExtra(this.msgid, cand, declared)
@@ -290,20 +363,23 @@ export class Mavlink2Parser {
  */
 export class MavlinkLink {
   constructor(options = {}) {
-    this.sysid = options.sysid ?? 255        // GCS 默认 255
-    this.compid = options.compid ?? 190      // MAV_COMP_ID_MISSIONPLANNER
+    this.sysid = options.sysid ?? 255 // GCS 默认 255
+    this.compid = options.compid ?? 190 // MAV_COMP_ID_MISSIONPLANNER
     this.seq = 0
     this.crcExtraOf = makeCrcExtraOf(options.crcExtra)
   }
 
-  nextSeq() { this.seq = (this.seq + 1) & 0xff; return this.seq }
+  nextSeq() {
+    this.seq = (this.seq + 1) & 0xff
+    return this.seq
+  }
 
   encode(msgid, payload, options = {}) {
     const p = payload instanceof Uint8Array ? payload : new Uint8Array(payload || [])
     const len = p.length
     const out = new Uint8Array(12 + len)
 
-    out[0] = 0xfd                                // STX v2
+    out[0] = 0xfd // STX v2
     out[1] = len
     out[2] = options.incompatFlags ?? 0
     out[3] = options.compatFlags ?? 0
@@ -328,12 +404,12 @@ export class MavlinkLink {
   encodeHeartbeat(params = {}) {
     const payload = new Uint8Array(9)
     const dv = new DataView(payload.buffer)
-    dv.setUint32(0, params.customMode ?? 0, true)  // custom_mode
-    payload[4] = params.type ?? 6                 // MAV_TYPE_GCS
-    payload[5] = params.autopilot ?? 8            // MAV_AUTOPILOT_INVALID
+    dv.setUint32(0, params.customMode ?? 0, true) // custom_mode
+    payload[4] = params.type ?? 6 // MAV_TYPE_GCS
+    payload[5] = params.autopilot ?? 8 // MAV_AUTOPILOT_INVALID
     payload[6] = params.baseMode ?? 0
-    payload[7] = params.systemStatus ?? 4         // MAV_STATE_ACTIVE
-    payload[8] = 3                                // mavlink_version
+    payload[7] = params.systemStatus ?? 4 // MAV_STATE_ACTIVE
+    payload[8] = 3 // mavlink_version
     return this.encode(MAVLINK_MSG_ID.HEARTBEAT, payload)
   }
 
@@ -389,7 +465,11 @@ export function decodeSerialControl(payload) {
   const device = full[7]
   const count = Math.min(full[8] ?? 0, 70)
   return {
-    baudRate, timeout, flags, device, count,
+    baudRate,
+    timeout,
+    flags,
+    device,
+    count,
     data: full.slice(9, 9 + count),
   }
 }
@@ -397,31 +477,69 @@ export function decodeSerialControl(payload) {
 /* ------------------------ FTP 子协议编解码 ------------------------ */
 
 export const FTP_OP = {
-  NONE: 0, TERMINATE_SESSION: 1, RESET_SESSIONS: 2, LIST_DIRECTORY: 3,
-  OPEN_FILE_RO: 4, READ_FILE: 5, CREATE_FILE: 6, WRITE_FILE: 7,
-  REMOVE_FILE: 8, CREATE_DIRECTORY: 9, REMOVE_DIRECTORY: 10,
-  OPEN_FILE_WO: 11, TRUNCATE_FILE: 12, RENAME: 13, CALC_FILE_CRC32: 14,
+  NONE: 0,
+  TERMINATE_SESSION: 1,
+  RESET_SESSIONS: 2,
+  LIST_DIRECTORY: 3,
+  OPEN_FILE_RO: 4,
+  READ_FILE: 5,
+  CREATE_FILE: 6,
+  WRITE_FILE: 7,
+  REMOVE_FILE: 8,
+  CREATE_DIRECTORY: 9,
+  REMOVE_DIRECTORY: 10,
+  OPEN_FILE_WO: 11,
+  TRUNCATE_FILE: 12,
+  RENAME: 13,
+  CALC_FILE_CRC32: 14,
   BURST_READ_FILE: 15,
-  ACK: 128, NAK: 129,
+  ACK: 128,
+  NAK: 129,
 }
 
 export const FTP_ERR = {
-  0: 'None', 1: 'Fail', 2: 'FailErrno', 3: 'InvalidDataSize',
-  4: 'InvalidSession', 5: 'NoSessionsAvailable', 6: 'EOF',
-  7: 'UnknownCommand', 8: 'FileExists', 9: 'FileProtected', 10: 'FileNotFound',
+  0: 'None',
+  1: 'Fail',
+  2: 'FailErrno',
+  3: 'InvalidDataSize',
+  4: 'InvalidSession',
+  5: 'NoSessionsAvailable',
+  6: 'EOF',
+  7: 'UnknownCommand',
+  8: 'FileExists',
+  9: 'FileProtected',
+  10: 'FileNotFound',
 }
 
 export const POSIX_ERRNO_TEXT = {
-  1: 'EPERM 操作不被允许', 2: 'ENOENT 文件或路径不存在', 5: 'EIO 输入输出错误 / SD 卡异常',
-  9: 'EBADF 文件句柄无效', 13: 'EACCES 权限不足', 16: 'EBUSY 资源忙 / 文件被占用',
-  17: 'EEXIST 文件已存在', 20: 'ENOTDIR 不是目录', 21: 'EISDIR 目标是目录',
-  22: 'EINVAL 参数无效', 24: 'EMFILE 打开文件过多', 28: 'ENOSPC 存储空间不足',
-  30: 'EROFS 只读文件系统', 36: 'ENAMETOOLONG 文件名过长',
-  38: 'ENOSYS 功能未实现', 39: 'ENOTEMPTY 目录非空',
+  1: 'EPERM 操作不被允许',
+  2: 'ENOENT 文件或路径不存在',
+  5: 'EIO 输入输出错误 / SD 卡异常',
+  9: 'EBADF 文件句柄无效',
+  13: 'EACCES 权限不足',
+  16: 'EBUSY 资源忙 / 文件被占用',
+  17: 'EEXIST 文件已存在',
+  20: 'ENOTDIR 不是目录',
+  21: 'EISDIR 目标是目录',
+  22: 'EINVAL 参数无效',
+  24: 'EMFILE 打开文件过多',
+  28: 'ENOSPC 存储空间不足',
+  30: 'EROFS 只读文件系统',
+  36: 'ENAMETOOLONG 文件名过长',
+  38: 'ENOSYS 功能未实现',
+  39: 'ENOTEMPTY 目录非空',
 }
 
-function buildFtpPayload({ seq, session = 0, opcode, size = 0, reqOpcode = 0,
-                           burstComplete = 0, offset = 0, data = null }) {
+function buildFtpPayload({
+  seq,
+  session = 0,
+  opcode,
+  size = 0,
+  reqOpcode = 0,
+  burstComplete = 0,
+  offset = 0,
+  data = null,
+}) {
   const p = new Uint8Array(251)
   const dv = new DataView(p.buffer)
   dv.setUint16(0, seq & 0xffff, true)
@@ -449,8 +567,7 @@ function parseFtpPayload(p) {
   const burstComplete = p[6]
   const offset = dv.getUint32(8, true)
   const dataSize = Math.min(size, Math.max(0, p.length - 12))
-  return { seq, session, opcode, size, reqOpcode, burstComplete, offset,
-           data: p.subarray(12, 12 + dataSize) }
+  return { seq, session, opcode, size, reqOpcode, burstComplete, offset, data: p.subarray(12, 12 + dataSize) }
 }
 
 export const __ftpInternal = { buildFtpPayload, parseFtpPayload }

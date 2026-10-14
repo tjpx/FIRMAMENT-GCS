@@ -15,7 +15,7 @@ export function createCliHistory({ maxChars = CLI_HISTORY_MAX_CHARS, maxEntries 
   let size = 0
   let connected = false
   const snapshot = () => entries.join('')
-  const notify = change => subscribers.forEach(listener => listener(change))
+  const notify = (change) => subscribers.forEach((listener) => listener(change))
   function append(output) {
     if (typeof output !== 'string' || !output) return
     let text = output
@@ -67,11 +67,15 @@ export function getCliHistory(mav) {
 export function attachCliHistory(mav) {
   if (attachments.has(mav)) return attachments.get(mav)
   const history = getCliHistory(mav)
-  const unbindCli = mav.on('cli', text => history.append(text))
-  const stopConnectionWatch = watch(() => mav.connected.value, value => history.setConnected(value), {
-    immediate: true,
-    flush: 'sync',
-  })
+  const unbindCli = mav.on('cli', (text) => history.append(text))
+  const stopConnectionWatch = watch(
+    () => mav.connected.value,
+    (value) => history.setConnected(value),
+    {
+      immediate: true,
+      flush: 'sync',
+    }
+  )
   let active = true
   const detach = () => {
     if (!active) return

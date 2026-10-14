@@ -7,9 +7,7 @@
         <span class="sb-title">机载配置与运行参数</span>
         <el-tag size="small" :type="stateTag.type" effect="dark">{{ stateTag.text }}</el-tag>
         <span class="sb-spacer" />
-        <el-button size="small" text :loading="pulling" :disabled="busyNow" @click="doPull">
-          重新读取
-        </el-button>
+        <el-button size="small" text :loading="pulling" :disabled="busyNow" @click="doPull"> 重新读取 </el-button>
       </div>
 
       <!-- 两个文件各自的账：远端大小、下载那一刻的 CRC32、本地待保存改动数 -->
@@ -34,7 +32,14 @@
       </div>
 
       <!-- 参数命令及回读不提供百分比；仅显示 FTP 上报的真实上传进度。 -->
-      <TaskProgress v-if="saving" :title="progressTitle" :description="progressText" :percentage="saveStage === 'uploading' ? percent : null" :total="saveStage === 'uploading' ? saveFileTotal : null" unit="个文件" />
+      <TaskProgress
+        v-if="saving"
+        :title="progressTitle"
+        :description="progressText"
+        :percentage="saveStage === 'uploading' ? percent : null"
+        :total="saveStage === 'uploading' ? saveFileTotal : null"
+        unit="个文件"
+      />
 
       <!-- 结果只认回读校验过的证据：本地 CRC32 与飞控回读 CRC32 并列显示 -->
       <div v-for="r in results" :key="r.key" class="sb-result" :class="r.ok ? 'rs-ok' : 'rs-bad'">
@@ -47,12 +52,13 @@
 
       <div class="sb-actions">
         <el-button
-            size="small"
-            type="primary"
-            :loading="saving"
-            :disabled="!canSave"
-            :title="canSave ? '' : saveDisabledReason"
-            @click="doSave">
+          size="small"
+          type="primary"
+          :loading="saving"
+          :disabled="!canSave"
+          :title="canSave ? '' : saveDisabledReason"
+          @click="doSave"
+        >
           <el-icon><Upload /></el-icon>&nbsp;保存到飞控{{ pendingTotal ? ` (${pendingTotal})` : '' }}
         </el-button>
         <el-button size="small" :disabled="!pendingTotal || saving" @click="doDiscard">
@@ -64,14 +70,15 @@
 
     <!-- 折叠态：右下角一个会报数的条。没数据也要说清是没读到，不能一片灰让人以为坏了 -->
     <div
-        class="sb-pill"
-        role="button"
-        tabindex="0"
-        :aria-expanded="open"
-        title="点开看两个机载配置文件的读取与待保存情况"
-        @click="open = !open"
-        @keydown.enter.prevent="open = !open"
-        @keydown.space.prevent="open = !open">
+      class="sb-pill"
+      role="button"
+      tabindex="0"
+      :aria-expanded="open"
+      title="点开看两个机载配置文件的读取与待保存情况"
+      @click="open = !open"
+      @keydown.enter.prevent="open = !open"
+      @keydown.space.prevent="open = !open"
+    >
       <el-badge v-if="pendingTotal" :value="pendingTotal" :max="99" class="sb-badge">
         <span class="sb-pill-text">全局保存</span>
       </el-badge>
@@ -80,7 +87,6 @@
       <span class="sb-pill-state" :class="'st-' + stateTag.type">{{ stateTag.text }}</span>
       <el-icon class="sb-caret"><ArrowDown v-if="open" /><ArrowUp v-else /></el-icon>
     </div>
-
   </div>
 </template>
 
@@ -106,7 +112,9 @@ import TaskProgress from './task-progress.vue'
 const mav = inject('mavlink')
 const fc = inject('fcconfig')
 const emit = defineEmits(['saved', 'save-failed'])
-function showPanel() { open.value = true }
+function showPanel() {
+  open.value = true
+}
 defineExpose({ save: doSave, showPanel })
 
 /* 首次出现默认展开：用户抱怨"只有一个灰色的全局保存"就是因为折叠态什么都没露出来。
@@ -128,15 +136,18 @@ const results = ref([])
 const saveStage = ref('preparing')
 const saveFileTotal = ref(null)
 const noteLines = ref([])
-const progressTitle = computed(() => ({
-  'parameter-writing': '写入运行参数',
-  'parameter-persisting': '持久化运行参数',
-  'parameter-verifying': '回读验证运行参数',
-  uploading: '上传系统配置文件',
-  verifying: '回读校验系统配置',
-  reconnecting: '重启与重连',
-  reloading: '重新读取机载配置',
-}[saveStage.value] || '准备保存'))
+const progressTitle = computed(
+  () =>
+    ({
+      'parameter-writing': '写入运行参数',
+      'parameter-persisting': '持久化运行参数',
+      'parameter-verifying': '回读验证运行参数',
+      uploading: '上传系统配置文件',
+      verifying: '回读校验系统配置',
+      reconnecting: '重启与重连',
+      reloading: '重新读取机载配置',
+    })[saveStage.value] || '准备保存'
+)
 const professionalNote = computed(() => {
   if (!changeTotal.value) return ''
   return fc.files.sysconfig?.dirty
@@ -153,23 +164,32 @@ const pulling = computed(() => fc.busy === 'pulling')
 const busyNow = computed(() => !!fc.busy)
 
 /** 每个文件一行的账。gate 是 store 的 previewSave 给的，界面不自己猜规则。 */
-const rows = computed(() => KEYS.map((k) => {
-  const st = fc.files[k.key] || {}
-  const gate = preview.value.byKey[k.key] || null
-  return {
-    key: k.key,
-    label: k.key === 'param' ? k.label : (st.label || k.label),
-    remote: st.remote || '',
-    loaded: !!st.loaded,
-    dirty: !!st.dirty,
-    error: st.error || '',
-    changes: (st.changes || []).length,
-    sizeText: st.size ? `${st.size} 字节` : '—',
-    crcText: st.crc32Hex || '—',
-    localText: k.key === 'param' ? `${(st.changes || []).length} 项待保存` : (gate ? `${gate.bytes} 字节` : (st.dirty ? '计算中…' : '与飞控相同')),
-    gate,
-  }
-}))
+const rows = computed(() =>
+  KEYS.map((k) => {
+    const st = fc.files[k.key] || {}
+    const gate = preview.value.byKey[k.key] || null
+    return {
+      key: k.key,
+      label: k.key === 'param' ? k.label : st.label || k.label,
+      remote: st.remote || '',
+      loaded: !!st.loaded,
+      dirty: !!st.dirty,
+      error: st.error || '',
+      changes: (st.changes || []).length,
+      sizeText: st.size ? `${st.size} 字节` : '—',
+      crcText: st.crc32Hex || '—',
+      localText:
+        k.key === 'param'
+          ? `${(st.changes || []).length} 项待保存`
+          : gate
+            ? `${gate.bytes} 字节`
+            : st.dirty
+              ? '计算中…'
+              : '与飞控相同',
+      gate,
+    }
+  })
+)
 
 /**
  * 预检：每次状态变化都重算一遍（纯函数，只是数一下字节）。
@@ -191,7 +211,9 @@ const briefText = computed(() => {
 })
 
 const canSave = computed(() => !!preview.value.ready && !!mav.canWrite.value && !saving.value)
-const saveDisabledReason = computed(() => !mav.canWrite.value ? '飞控未确认安全在线或已解锁，禁止覆盖配置' : preview.value.error || '没有待保存的改动')
+const saveDisabledReason = computed(() =>
+  !mav.canWrite.value ? '飞控未确认安全在线或已解锁，禁止覆盖配置' : preview.value.error || '没有待保存的改动'
+)
 
 const stateTag = computed(() => {
   if (pulling.value) return { type: 'info', text: '正在读取' }
@@ -212,7 +234,10 @@ async function doPull() {
 async function doSave() {
   if (saving.value || busyNow.value || !mav.canWrite.value) return
   const plan = preview.value
-  if (!plan.ready) { ElMessage.error(plan.error || '现在不能保存'); return }
+  if (!plan.ready) {
+    ElMessage.error(plan.error || '现在不能保存')
+    return
+  }
   saving.value = true
   results.value = []
   noteLines.value = []
@@ -265,8 +290,20 @@ async function doSave() {
       if (r.needsReboot === true) {
         saveStage.value = 'reconnecting'
         progressText.value = '系统配置保存校验通过，正在重启并自动重连…'
-        const stageLabels = { 'sending-reboot': '正在发送重启命令…', 'waiting-offline': '等待飞控重启…', reconnecting: '正在重新打开已授权串口…', 'waiting-heartbeat': '等待重启后的新心跳…', online: '新心跳已确认', cancelled: '自动重连已取消', failed: '自动重连失败' }
-        const result = await mav.rebootAndReconnect({ onStage: stage => { progressText.value = stageLabels[stage] || String(stage) } })
+        const stageLabels = {
+          'sending-reboot': '正在发送重启命令…',
+          'waiting-offline': '等待飞控重启…',
+          reconnecting: '正在重新打开已授权串口…',
+          'waiting-heartbeat': '等待重启后的新心跳…',
+          online: '新心跳已确认',
+          cancelled: '自动重连已取消',
+          failed: '自动重连失败',
+        }
+        const result = await mav.rebootAndReconnect({
+          onStage: (stage) => {
+            progressText.value = stageLabels[stage] || String(stage)
+          },
+        })
         if (!result?.ok) throw new Error('重启重连未确认成功')
         saveStage.value = 'reloading'
         progressText.value = '新心跳已确认，正在重新读取机载配置…'
@@ -277,7 +314,10 @@ async function doSave() {
         ElMessage.success('运行参数已保存并持久化验证，无需重启飞控')
       }
       emit('saved')
-    } else { ElMessage.error(r.error || '部分配置未保存，未重启飞控'); emit('save-failed') }
+    } else {
+      ElMessage.error(r.error || '部分配置未保存，未重启飞控')
+      emit('save-failed')
+    }
   } catch (e) {
     // saveAll 内部捕获保存失败，走到这里说明是意料之外的错：原样带出来，不粉饰
     const failure = `保存或重启重连失败：${e?.message || e}`
@@ -291,48 +331,135 @@ async function doSave() {
 }
 
 function doDiscard() {
-  try { fc.discardAll() }
-  catch (error) { ElMessage.error(error?.message || '无法还原改动'); return }
+  try {
+    fc.discardAll()
+  } catch (error) {
+    ElMessage.error(error?.message || '无法还原改动')
+    return
+  }
   results.value = []
   noteLines.value = []
   ElMessage.info('已放弃本地改动，回到下载时的原文')
 }
-
 </script>
 
 <style scoped>
-.sb-drawer-label{position:absolute;right:0;bottom:100%;margin-bottom:4px;padding:4px 8px;border-radius:4px;background:var(--dsh-warning-soft);color:var(--dsh-warning);font-size:11px;white-space:nowrap}.save-bar { z-index:2000; width:auto; max-width:100%; display:flex; flex-direction:column; align-items:flex-end; gap:4px; min-width:0 }
-.sb-panel { position:absolute; right:0; bottom:calc(100% + 6px); box-sizing:border-box; width:min(560px,calc(100vw - 24px)); max-height:min(62vh,560px); overflow-y:auto;
-   background: var(--dsh-surface);
-   border: 1px solid var(--dsh-border);
-   border-radius: 8px;
-   box-shadow: 0 6px 18px rgb(0 0 0 / 18%);
-   padding: 8px 10px;
- }
-.sb-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.sb-title { font-weight: 600; font-size: 13px; }
-.sb-spacer { flex: 1; }
+.sb-drawer-label {
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  margin-bottom: 4px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: var(--dsh-warning-soft);
+  color: var(--dsh-warning);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.save-bar {
+  z-index: 2000;
+  width: auto;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 0;
+}
+.sb-panel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  box-sizing: border-box;
+  width: min(560px, calc(100vw - 24px));
+  max-height: min(62vh, 560px);
+  overflow-y: auto;
+  background: var(--dsh-surface);
+  border: 1px solid var(--dsh-border);
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 18%);
+  padding: 8px 10px;
+}
+.sb-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.sb-title {
+  font-weight: 600;
+  font-size: 13px;
+}
+.sb-spacer {
+  flex: 1;
+}
 .sb-file {
   border-top: 1px dashed var(--dsh-divider);
   padding: 5px 0;
   font-size: 12px;
 }
-.sb-file.sb-dirty { background: color-mix(in srgb, var(--dsh-warning) 12%, var(--dsh-surface)); }
-.sb-line1 { display: flex; align-items: center; gap: 6px; }
-.sb-name { font-weight: 600; }
-.sb-line2 { display: flex; gap: 10px; color: var(--el-text-color-secondary); margin-top: 2px; flex-wrap: wrap; }
-.sb-block, .sb-err { color: var(--el-color-danger); margin-top: 3px; line-height: 1.5; }
-.sb-warn { color: var(--el-color-warning); margin-top: 3px; line-height: 1.5; }
-.sb-progress-text { font-size: 12px; color: var(--el-text-color-secondary); margin-top: 4px; }
-.sb-result { font-size: 12px; line-height: 1.5; margin-top: 4px; word-break: break-all; }
-.rs-ok { color: var(--el-color-success); }
-.rs-bad { color: var(--el-color-danger); }
-.sb-note { font-size: 12px; color: var(--el-color-warning); margin-top: 5px; line-height: 1.6; }
-.sb-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.sb-file.sb-dirty {
+  background: color-mix(in srgb, var(--dsh-warning) 12%, var(--dsh-surface));
+}
+.sb-line1 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sb-name {
+  font-weight: 600;
+}
+.sb-line2 {
+  display: flex;
+  gap: 10px;
+  color: var(--el-text-color-secondary);
+  margin-top: 2px;
+  flex-wrap: wrap;
+}
+.sb-block,
+.sb-err {
+  color: var(--el-color-danger);
+  margin-top: 3px;
+  line-height: 1.5;
+}
+.sb-warn {
+  color: var(--el-color-warning);
+  margin-top: 3px;
+  line-height: 1.5;
+}
+.sb-progress-text {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  margin-top: 4px;
+}
+.sb-result {
+  font-size: 12px;
+  line-height: 1.5;
+  margin-top: 4px;
+  word-break: break-all;
+}
+.rs-ok {
+  color: var(--el-color-success);
+}
+.rs-bad {
+  color: var(--el-color-danger);
+}
+.sb-note {
+  font-size: 12px;
+  color: var(--el-color-warning);
+  margin-top: 5px;
+  line-height: 1.6;
+}
+.sb-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
 .sb-pill {
-  width:clamp(280px, 32vw, 460px);
-  max-width:100%;
-  min-width:0;
+  width: clamp(280px, 32vw, 460px);
+  max-width: 100%;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -347,14 +474,42 @@ function doDiscard() {
   align-self: flex-end;
   width: fit-content;
 }
-.sb-pill-text { font-weight: 600; }
-.sb-pill:hover { border-color: var(--dsh-accent-hi); box-shadow: 0 4px 14px color-mix(in srgb, var(--dsh-accent) 34%, transparent); }
-.sb-pill:focus-visible { outline: 2px solid var(--dsh-accent); outline-offset: 2px; }
-.sb-pill-brief { color: var(--el-text-color-secondary); font-variant-numeric: tabular-nums; min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.sb-pill-state { color: var(--el-text-color-secondary); }
-.st-danger { color: var(--el-color-danger); }
-.st-warning { color: var(--el-color-warning); }
-.st-success { color: var(--el-color-success); }
-.sb-badge :deep(.el-badge__content) { top: 6px; }
-.sb-caret { font-size: 12px; }
+.sb-pill-text {
+  font-weight: 600;
+}
+.sb-pill:hover {
+  border-color: var(--dsh-accent-hi);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--dsh-accent) 34%, transparent);
+}
+.sb-pill:focus-visible {
+  outline: 2px solid var(--dsh-accent);
+  outline-offset: 2px;
+}
+.sb-pill-brief {
+  color: var(--el-text-color-secondary);
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sb-pill-state {
+  color: var(--el-text-color-secondary);
+}
+.st-danger {
+  color: var(--el-color-danger);
+}
+.st-warning {
+  color: var(--el-color-warning);
+}
+.st-success {
+  color: var(--el-color-success);
+}
+.sb-badge :deep(.el-badge__content) {
+  top: 6px;
+}
+.sb-caret {
+  font-size: 12px;
+}
 </style>

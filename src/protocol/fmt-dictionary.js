@@ -18,6 +18,16 @@
  *   heartbeat.type = MAV_TYPE_QUADROTOR(2)、heartbeat.autopilot = MAV_AUTOPILOT_PX4(3)，
  *   即使编译成 Fixwing 也照样发 QUADROTOR，而且与真正的 PX4 无法区分。
  *   所以这里把 HEARTBEAT 只当作「对不上就提示」的辅助证据，不参与选表。
+ *
+ * 抄表来源（出问题时追溯是哪个版本的规定）：
+ *   · 固件：G:\fmt\fmt-mcu\FMT-Firmware（本机源码，非发布包）
+ *   · 枚举：src/model/fms/{mc,fw,vtol,car,boat,template}_fms/lib/FMS_types.h
+ *           src/module/sysio/gcs_cmd.c（gcs_set_mode / gcs_set_cmd 实际接受的分支）
+ *           src/task/comm/task_comm.c get_custom_mode()、src/task/comm/mavgcs.c SET_MODE 分支
+ *           src/module/mavproxy/px4_custom_mode.h
+ *   · 布局：src/model/control/{mc,adrc}_controller/lib/Controller_types.h（1~8）
+ *           src/model/control/{vtol,boat}_controller/lib/Controller_types.h（1~2）
+ *   · 板卡：target/<vendor>/config/sysconfig.toml:4（target 字符串）+ target/<vendor>/config/model.py（--vehicle 分支）
  */
 import {
   FMT_MODE_OPTIONS,
@@ -26,22 +36,6 @@ import {
   AIRFRAME_VTOL_BOAT_OPTIONS,
 } from './fmt-enums.js'
 
-/** 本文件抄表的来源与时间，出问题时能追溯到是哪个版本的规定 */
-export const DICTIONARY_SOURCE = {
-  firmware: 'G:\\fmt\\fmt-mcu\\FMT-Firmware（本机源码，非发布包）',
-  enums: [
-    'src/model/fms/{mc,fw,vtol,car,boat,template}_fms/lib/FMS_types.h',
-    'src/module/sysio/gcs_cmd.c（gcs_set_mode / gcs_set_cmd 实际接受的分支）',
-    'src/task/comm/task_comm.c get_custom_mode()、src/task/comm/mavgcs.c SET_MODE 分支',
-    'src/module/mavproxy/px4_custom_mode.h',
-  ],
-  airframe: [
-    'src/model/control/{mc,adrc}_controller/lib/Controller_types.h（1~8）',
-    'src/model/control/{vtol,boat}_controller/lib/Controller_types.h（1~2）',
-  ],
-  boards: 'target/*/config/sysconfig.toml:4（target 字符串）+ target/*/config/model.py（--vehicle 分支）',
-}
-
 /** 机型（--vehicle 取值）到取值集合。airframes 为 null 表示固件没给出集合，界面不猜 */
 export const VEHICLE_PRESETS = {
   Multicopter: {
@@ -49,7 +43,8 @@ export const VEHICLE_PRESETS = {
     modes: FMT_MODE_OPTIONS,
     commands: FMT_COMMAND_OPTIONS,
     airframes: AIRFRAME_LAYOUT_OPTIONS,
-    airframeHint: '多旋翼控制律只允许 1~8（mc_controller/lib/Controller_types.h 的编译期检查）；具体是哪种桨架布局固件里没有名称表，界面只显示编号。布局在编译期选定，运行期改这个参数一般不会重新映射电机输出。',
+    airframeHint:
+      '多旋翼控制律只允许 1~8（mc_controller/lib/Controller_types.h 的编译期检查）；具体是哪种桨架布局固件里没有名称表，界面只显示编号。布局在编译期选定，运行期改这个参数一般不会重新映射电机输出。',
   },
   Fixwing: {
     label: '固定翼（固件拼写 Fixwing）',
@@ -96,23 +91,86 @@ export const DEFAULT_VEHICLE = 'Multicopter'
  * 而不是假装完整。
  */
 export const KNOWN_BOARDS = [
-  { target: 'SIEON S1', dir: 'target/sieon/s1', vehicles: ['Multicopter', 'Fixwing', 'VTOL', 'Boat', 'Car', 'Template'], verified: true },
-  { target: 'CUAV X7+', dir: 'target/cuav/x7_plus', vehicles: ['Multicopter', 'Fixwing', 'VTOL', 'Boat', 'Car', 'Template'], verified: true },
-  { target: 'CUAV V5+', dir: 'target/cuav/v5_plus', vehicles: ['Multicopter', 'Fixwing', 'Boat', 'Car', 'Template'], verified: true },
-  { target: 'CUAV V5-Nano', dir: 'target/cuav/v5_nano', vehicles: ['Multicopter', 'Fixwing', 'Boat', 'Car', 'Template'], verified: true },
-  { target: 'CUAV 7-Nano', dir: 'target/cuav/7_nano', vehicles: ['Multicopter', 'Fixwing', 'Boat', 'Car', 'Template'], verified: true },
-  { target: 'Pixhawk FMUv2', dir: 'target/pixhawk/fmu-v2', vehicles: ['Multicopter', 'Fixwing', 'Boat', 'Car', 'Template'], verified: true },
-  { target: 'Pixhawk4 FMUv5', dir: 'target/pixhawk/fmu-v5', vehicles: ['Multicopter', 'Fixwing', 'Boat', 'Car', 'Template'], verified: true },
-  { target: 'Pixhawk 6C', dir: 'target/pixhawk/fmu-v6c', vehicles: ['Multicopter', 'Fixwing', 'VTOL'], verified: false },
-  { target: 'Amov-ICF5', dir: 'target/amov/icf5', vehicles: ['Multicopter', 'Fixwing', 'Boat', 'Car', 'Template'], verified: true },
-  { target: 'YunDrone X1', dir: 'target/yundrone/x1', vehicles: ['Multicopter', 'Fixwing', 'VTOL', 'Boat', 'Car', 'Template'], verified: true },
-  { target: 'Edge-E83', dir: 'target/infineon/edge-e83/{m33,m55}', vehicles: ['Multicopter', 'Fixwing', 'VTOL', 'Boat', 'Car', 'Template'], verified: true },
-  { target: 'CUAV V5+ (minimum)', dir: 'target/minimum/cuav/v5_plus', vehicles: ['Multicopter', 'Fixwing', 'Template'], verified: true },
+  {
+    target: 'SIEON S1',
+    dir: 'target/sieon/s1',
+    vehicles: ['Multicopter', 'Fixwing', 'VTOL', 'Boat', 'Car', 'Template'],
+    verified: true,
+  },
+  {
+    target: 'CUAV X7+',
+    dir: 'target/cuav/x7_plus',
+    vehicles: ['Multicopter', 'Fixwing', 'VTOL', 'Boat', 'Car', 'Template'],
+    verified: true,
+  },
+  {
+    target: 'CUAV V5+',
+    dir: 'target/cuav/v5_plus',
+    vehicles: ['Multicopter', 'Fixwing', 'Boat', 'Car', 'Template'],
+    verified: true,
+  },
+  {
+    target: 'CUAV V5-Nano',
+    dir: 'target/cuav/v5_nano',
+    vehicles: ['Multicopter', 'Fixwing', 'Boat', 'Car', 'Template'],
+    verified: true,
+  },
+  {
+    target: 'CUAV 7-Nano',
+    dir: 'target/cuav/7_nano',
+    vehicles: ['Multicopter', 'Fixwing', 'Boat', 'Car', 'Template'],
+    verified: true,
+  },
+  {
+    target: 'Pixhawk FMUv2',
+    dir: 'target/pixhawk/fmu-v2',
+    vehicles: ['Multicopter', 'Fixwing', 'Boat', 'Car', 'Template'],
+    verified: true,
+  },
+  {
+    target: 'Pixhawk4 FMUv5',
+    dir: 'target/pixhawk/fmu-v5',
+    vehicles: ['Multicopter', 'Fixwing', 'Boat', 'Car', 'Template'],
+    verified: true,
+  },
+  {
+    target: 'Pixhawk 6C',
+    dir: 'target/pixhawk/fmu-v6c',
+    vehicles: ['Multicopter', 'Fixwing', 'VTOL'],
+    verified: false,
+  },
+  {
+    target: 'Amov-ICF5',
+    dir: 'target/amov/icf5',
+    vehicles: ['Multicopter', 'Fixwing', 'Boat', 'Car', 'Template'],
+    verified: true,
+  },
+  {
+    target: 'YunDrone X1',
+    dir: 'target/yundrone/x1',
+    vehicles: ['Multicopter', 'Fixwing', 'VTOL', 'Boat', 'Car', 'Template'],
+    verified: true,
+  },
+  {
+    target: 'Edge-E83',
+    dir: 'target/infineon/edge-e83/{m33,m55}',
+    vehicles: ['Multicopter', 'Fixwing', 'VTOL', 'Boat', 'Car', 'Template'],
+    verified: true,
+  },
+  {
+    target: 'CUAV V5+ (minimum)',
+    dir: 'target/minimum/cuav/v5_plus',
+    vehicles: ['Multicopter', 'Fixwing', 'Template'],
+    verified: true,
+  },
 ]
 
 /** 规一化 target 字符串：大小写、空格、括号差异都不该让查表落空 */
 function normalizeTarget(s) {
-  return String(s ?? '').toLowerCase().replace(/\s+/g, ' ').trim()
+  return String(s ?? '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 /**
@@ -136,7 +194,8 @@ export function resolveDictionary(ctx = {}) {
   } else if (board) {
     presetKey = board.vehicles.includes(DEFAULT_VEHICLE) ? DEFAULT_VEHICLE : board.vehicles[0]
     source = `sysconfig target = "${board.target}" → 该板支持 ${board.vehicles.join(' / ')}，未指定编译机型，默认按 ${presetKey}`
-    if (!board.verified) warning = `板卡「${board.target}」的 model.py 只核对到 ${board.vehicles.join('/')} 分支，其余分支未确认。`
+    if (!board.verified)
+      warning = `板卡「${board.target}」的 model.py 只核对到 ${board.vehicles.join('/')} 分支，其余分支未确认。`
   } else if (ctx.target) {
     warning = `sysconfig target = "${ctx.target}" 不在已知板卡清单里，按 ${DEFAULT_VEHICLE} 的取值集合显示，原值保留不替换。`
     source = '未知板卡 → 默认多旋翼'

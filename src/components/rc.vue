@@ -30,15 +30,19 @@
 -->
 <template>
   <div class="rc-config-container">
-    <TaskHeader eyebrow="RECEIVER / INPUT" title="接收机" description="实时显示飞控上报的 RC_CHANNELS，并编辑来自配置文件的通道映射。未上报数据保持未知。" />
+    <TaskHeader
+      eyebrow="RECEIVER / INPUT"
+      title="接收机"
+      description="实时显示飞控上报的 RC_CHANNELS，并编辑来自配置文件的通道映射。未上报数据保持未知。"
+    />
     <!-- 顶部：这一页到底吃的是谁的数 -->
     <el-alert
-        v-if="!fc.loaded"
-        type="info"
-        show-icon
-        :closable="false"
-        class="mb-3"
-        title="连上飞控后地面站会自动把 /sys/sysconfig.toml 与 /sys/param.xml 读进来（约 1~3 秒）。下面几张表显示的就是飞控上的原文，不用手动读取。"
+      v-if="!fc.loaded"
+      type="info"
+      show-icon
+      :closable="false"
+      class="mb-3"
+      title="连上飞控后地面站会自动把 /sys/sysconfig.toml 与 /sys/param.xml 读进来（约 1~3 秒）。下面几张表显示的就是飞控上的原文，不用手动读取。"
     >
       <template #default>
         <div class="foot-note">
@@ -48,12 +52,12 @@
       </template>
     </el-alert>
     <el-alert
-        v-else
-        type="success"
-        show-icon
-        :closable="false"
-        class="mb-3"
-        :title="`已从飞控读取到原文：sysconfig.toml（${fmtBytes(fc.files.sysconfig.size)}）/ param.xml（${fmtBytes(fc.files.param.size)}）。本页改动只写在内存里，右下角「全局保存」才会写回飞控。`"
+      v-else
+      type="success"
+      show-icon
+      :closable="false"
+      class="mb-3"
+      :title="`已从飞控读取到原文：sysconfig.toml（${fmtBytes(fc.files.sysconfig.size)}）/ param.xml（${fmtBytes(fc.files.param.size)}）。本页改动只写在内存里，右下角「全局保存」才会写回飞控。`"
     />
 
     <el-tabs v-model="activeTab" type="border-card" class="config-tabs">
@@ -66,7 +70,7 @@
                 <div class="card-header">
                   <span>摇杆实时状态</span>
                   <el-tag size="small" :type="live ? 'success' : 'info'">
-                    {{ live ? '实时' : (mav.connected.value ? '无遥测' : '未连接') }}
+                    {{ live ? '实时' : mav.connected.value ? '无遥测' : '未连接' }}
                   </el-tag>
                 </div>
               </template>
@@ -80,8 +84,18 @@
                     <div class="stick-knob" :style="getStickStyle(stickMap.yaw, stickMap.throttle)"></div>
                   </div>
                   <div class="stick-labels">
-                    <span>CH{{ stickMap.throttle }} 油门: <b class="dsh-num" v-flash-on-change="rcFlash(valueOf(stickMap.throttle))">{{ fmt(valueOf(stickMap.throttle)) }}</b></span>
-                    <span>CH{{ stickMap.yaw }} 航向: <b class="dsh-num" v-flash-on-change="rcFlash(valueOf(stickMap.yaw))">{{ fmt(valueOf(stickMap.yaw)) }}</b></span>
+                    <span
+                      >CH{{ stickMap.throttle }} 油门:
+                      <b class="dsh-num" v-flash-on-change="rcFlash(valueOf(stickMap.throttle))">{{
+                        fmt(valueOf(stickMap.throttle))
+                      }}</b></span
+                    >
+                    <span
+                      >CH{{ stickMap.yaw }} 航向:
+                      <b class="dsh-num" v-flash-on-change="rcFlash(valueOf(stickMap.yaw))">{{
+                        fmt(valueOf(stickMap.yaw))
+                      }}</b></span
+                    >
                   </div>
                 </div>
                 <div class="stick-box">
@@ -90,16 +104,44 @@
                     <div class="stick-knob" :style="getStickStyle(stickMap.roll, stickMap.pitch)"></div>
                   </div>
                   <div class="stick-labels">
-                    <span>CH{{ stickMap.roll }} 横滚: <b class="dsh-num" v-flash-on-change="rcFlash(valueOf(stickMap.roll))">{{ fmt(valueOf(stickMap.roll)) }}</b></span>
-                    <span>CH{{ stickMap.pitch }} 俯仰: <b class="dsh-num" v-flash-on-change="rcFlash(valueOf(stickMap.pitch))">{{ fmt(valueOf(stickMap.pitch)) }}</b></span>
+                    <span
+                      >CH{{ stickMap.roll }} 横滚:
+                      <b class="dsh-num" v-flash-on-change="rcFlash(valueOf(stickMap.roll))">{{
+                        fmt(valueOf(stickMap.roll))
+                      }}</b></span
+                    >
+                    <span
+                      >CH{{ stickMap.pitch }} 俯仰:
+                      <b class="dsh-num" v-flash-on-change="rcFlash(valueOf(stickMap.pitch))">{{
+                        fmt(valueOf(stickMap.pitch))
+                      }}</b></span
+                    >
                   </div>
                 </div>
               </div>
-              <div class="rc-preview-inline"><div class="preview-title">摇杆输入姿态预览</div><Aircraft3D :roll="rcAxis(stickMap.roll) * 18" :pitch="rcAxis(stickMap.pitch) * -12" :yaw="rcAxis(stickMap.yaw) * 20" :throttle="pct(valueOf(stickMap.throttle))" compact /><div class="model-readout">横滚 {{ stickAngle(stickMap.roll) }}° · 俯仰 {{ stickAngle(stickMap.pitch) }}° · 仅显示遥控器输入</div></div>
-<div class="mini-info">
-                <span>RSSI：<span class="dsh-num">{{ rssiText }}</span></span>
-                <span>有效通道：<span class="dsh-num">{{ rc.chancount || '--' }}</span></span>
-                <span>飞控时基：<span class="dsh-num">{{ rc.chancount ? rc.timeBootMs + ' ms' : '--' }}</span></span>
+              <div class="rc-preview-inline">
+                <div class="preview-title">摇杆输入姿态预览</div>
+                <Aircraft3D
+                  :roll="rcAxis(stickMap.roll) * 18"
+                  :pitch="rcAxis(stickMap.pitch) * -12"
+                  :yaw="rcAxis(stickMap.yaw) * 20"
+                  :throttle="pct(valueOf(stickMap.throttle))"
+                  compact
+                />
+                <div class="model-readout">
+                  横滚 {{ stickAngle(stickMap.roll) }}° · 俯仰 {{ stickAngle(stickMap.pitch) }}° · 仅显示遥控器输入
+                </div>
+              </div>
+              <div class="mini-info">
+                <span
+                  >RSSI：<span class="dsh-num">{{ rssiText }}</span></span
+                >
+                <span
+                  >有效通道：<span class="dsh-num">{{ rc.chancount || '--' }}</span></span
+                >
+                <span
+                  >飞控时基：<span class="dsh-num">{{ rc.chancount ? rc.timeBootMs + ' ms' : '--' }}</span></span
+                >
                 <span>摇杆通道：{{ stickMapSource }}</span>
               </div>
             </el-card>
@@ -118,10 +160,10 @@
                 <span class="ch-axis">{{ channelHint(ch) }}</span>
                 <div class="ch-bar">
                   <el-progress
-                      :percentage="pct(valueOf(ch))"
-                      :color="getChannelColor(ch)"
-                      :stroke-width="10"
-                      :show-text="false"
+                    :percentage="pct(valueOf(ch))"
+                    :color="getChannelColor(ch)"
+                    :stroke-width="10"
+                    :show-text="false"
                   />
                   <span v-if="extremes[ch - 1].min !== null" class="ch-range dsh-num">
                     {{ extremes[ch - 1].min }} ~ {{ extremes[ch - 1].max }}
@@ -132,10 +174,10 @@
               <div class="calib-footer">
                 <p class="foot-note">通道条按页面显示范围 1000–2000 μs 绘制；死区配置未知，不绘制推测斜纹。</p>
                 <el-alert
-                    type="info"
-                    show-icon
-                    :closable="false"
-                    title="这一列只是本次会话的观测值。要改每路的行程/方向/中位，请到「通道行程」页（写的是 param.xml 的 RC 组）；要改接收机协议与通道数，请到「接收机配置」页（写的是 sysconfig.toml 的 [pilot-cmd]）。"
+                  type="info"
+                  show-icon
+                  :closable="false"
+                  title="这一列只是本次会话的观测值。要改每路的行程/方向/中位，请到「通道行程」页（写的是 param.xml 的 RC 组）；要改接收机协议与通道数，请到「接收机配置」页（写的是 sysconfig.toml 的 [pilot-cmd]）。"
                 />
               </div>
             </el-card>
@@ -143,17 +185,24 @@
         </el-row>
       </el-tab-pane>
 
-<!-- 2. 通道行程：param.xml 的 RC 组 -->
+      <!-- 2. 通道行程：param.xml 的 RC 组 -->
       <el-tab-pane name="travel">
         <template #label>通道行程<el-badge v-if="dirtyParam" :value="dirtyParam" class="tab-badge" /></template>
-        <EmptyStateAction v-if="!fc.loaded" title="配置尚未就绪" reason="还没从飞控读到 param.xml，不展示假数据" action-label="从飞控读取配置" :action-disabled="!mav.connected.value || !!fc.busy" @action="reload" />
+        <EmptyStateAction
+          v-if="!fc.loaded"
+          title="配置尚未就绪"
+          reason="还没从飞控读到 param.xml，不展示假数据"
+          action-label="从飞控读取配置"
+          :action-disabled="!mav.connected.value || !!fc.busy"
+          @action="reload"
+        />
         <template v-else>
           <el-alert
-              class="mb-3"
-              type="warning"
-              show-icon
-              :closable="false"
-              title="行程写错会直接把舵量顶到底：MIN 必须小于 MAX、方向只能是 ±1、中位要落在本路行程之内，页面会拦住不合格的值。改完走右下角全局保存，重启飞控才生效（param.xml 只在开机时读）。"
+            class="mb-3"
+            type="warning"
+            show-icon
+            :closable="false"
+            title="行程写错会直接把舵量顶到底：MIN 必须小于 MAX、方向只能是 ±1、中位要落在本路行程之内，页面会拦住不合格的值。改完走右下角全局保存，重启飞控才生效（param.xml 只在开机时读）。"
           />
           <el-card v-for="card in rcCards" :key="card.card" shadow="never" class="pane-card">
             <template #header>
@@ -166,17 +215,19 @@
 
             <!-- rc-channels 卡摊成一路一行 -->
             <el-table
-                v-if="card.card === 'rc-channels'"
-                :data="travel.channels"
-                max-height="480"
-                border
-                size="small"
-                style="width: 100%"
+              v-if="card.card === 'rc-channels'"
+              :data="travel.channels"
+              max-height="480"
+              border
+              size="small"
+              style="width: 100%"
             >
               <el-table-column prop="label" label="通道" width="80" />
               <el-table-column label="当前 PWM" width="100" align="center">
                 <template #default="s">
-                  <span class="mono dsh-num" v-flash-on-change="rcFlash(valueOf(s.row.chan))">{{ fmt(valueOf(s.row.chan)) }}</span>
+                  <span class="mono dsh-num" v-flash-on-change="rcFlash(valueOf(s.row.chan))">{{
+                    fmt(valueOf(s.row.chan))
+                  }}</span>
                 </template>
               </el-table-column>
               <el-table-column label="本次极值" width="120" align="center">
@@ -187,11 +238,27 @@
               <el-table-column v-for="col in RC_COLUMNS" :key="col.key" :label="col.name" min-width="180">
                 <template #default="s">
                   <template v-if="s.row.fields[col.key]">
-                    <el-select v-if="col.key === 'REV'" :data-search-key="`param:RC:${s.row.fields[col.key].name}`" v-model="drafts[s.row.fields[col.key].name]" size="small" clearable :placeholder="`当前 ${s.row.fields[col.key].raw}`" @change="commitParam(s.row.fields[col.key])"><el-option v-for="option in RC_DIRECTION_OPTIONS" :key="option.value" :label="`${option.label}（${option.value}）`" :value="option.value" /></el-select><el-input v-else :data-search-key="`param:RC:${s.row.fields[col.key].name}`" v-model="drafts[s.row.fields[col.key].name]"
-                        size="small"
-                        :placeholder="`当前 ${s.row.fields[col.key].raw}`"
-                        @keyup.enter="commitParam(s.row.fields[col.key])"
-                        @blur="commitParam(s.row.fields[col.key])"
+                    <el-select
+                      v-if="col.key === 'REV'"
+                      :data-search-key="`param:RC:${s.row.fields[col.key].name}`"
+                      v-model="drafts[s.row.fields[col.key].name]"
+                      size="small"
+                      clearable
+                      :placeholder="`当前 ${s.row.fields[col.key].raw}`"
+                      @change="commitParam(s.row.fields[col.key])"
+                      ><el-option
+                        v-for="option in RC_DIRECTION_OPTIONS"
+                        :key="option.value"
+                        :label="`${option.label}（${option.value}）`"
+                        :value="option.value" /></el-select
+                    ><el-input
+                      v-else
+                      :data-search-key="`param:RC:${s.row.fields[col.key].name}`"
+                      v-model="drafts[s.row.fields[col.key].name]"
+                      size="small"
+                      :placeholder="`当前 ${s.row.fields[col.key].raw}`"
+                      @keyup.enter="commitParam(s.row.fields[col.key])"
+                      @blur="commitParam(s.row.fields[col.key])"
                     />
                     <div v-if="errors[s.row.fields[col.key].name]" class="draft-hit">
                       {{ errors[s.row.fields[col.key].name] }}
@@ -211,17 +278,20 @@
             <!-- 其余卡（含 RC_CHAN_CNT 与兜底）按 pid 页的逐行形态显示 -->
             <el-table v-else :data="card.items" border size="small" max-height="480" style="width: 100%">
               <el-table-column prop="name" label="参数名" width="190">
-                <template #default="s"><code class="mono">{{ s.row.name }}</code></template>
+                <template #default="s"
+                  ><code class="mono">{{ s.row.name }}</code></template
+                >
               </el-table-column>
               <el-table-column prop="label" label="名称" width="200" />
               <el-table-column label="飞控上的值" min-width="190">
                 <template #default="s">
                   <el-input
-                      :data-search-key="`param:RC:${s.row.name}`" v-model="drafts[s.row.name]"
-                      size="small"
-                      :placeholder="`当前 ${s.row.raw}`"
-                      @keyup.enter="commitParam(s.row)"
-                      @blur="commitParam(s.row)"
+                    :data-search-key="`param:RC:${s.row.name}`"
+                    v-model="drafts[s.row.name]"
+                    size="small"
+                    :placeholder="`当前 ${s.row.raw}`"
+                    @keyup.enter="commitParam(s.row)"
+                    @blur="commitParam(s.row)"
                   />
                   <div v-if="errors[s.row.name]" class="draft-hit">{{ errors[s.row.name] }}</div>
                   <div v-else-if="notes[s.row.name]" class="draft-hit ok">{{ notes[s.row.name] }}</div>
@@ -230,8 +300,8 @@
               <el-table-column label="原文写法" width="130">
                 <template #default="s">
                   <el-tooltip
-                      content="写回时按原文形态回填：浮点是六位小数，整数保持裸写法，地面站不自己决定小数位"
-                      placement="top"
+                    content="写回时按原文形态回填：浮点是六位小数，整数保持裸写法，地面站不自己决定小数位"
+                    placement="top"
                   >
                     <code class="mono">{{ s.row.raw }}</code>
                   </el-tooltip>
@@ -253,14 +323,21 @@
       <!-- 3. 接收机配置：sysconfig.toml 的 [pilot-cmd] -->
       <el-tab-pane name="pilot">
         <template #label>接收机配置<el-badge v-if="dirtyToml" :value="dirtyToml" class="tab-badge" /></template>
-        <EmptyStateAction v-if="!fc.loaded" title="配置尚未就绪" reason="还没从飞控读到 sysconfig.toml，不展示假数据" action-label="从飞控读取配置" :action-disabled="!mav.connected.value || !!fc.busy" @action="reload" />
+        <EmptyStateAction
+          v-if="!fc.loaded"
+          title="配置尚未就绪"
+          reason="还没从飞控读到 sysconfig.toml，不展示假数据"
+          action-label="从飞控读取配置"
+          :action-disabled="!mav.connected.value || !!fc.busy"
+          @action="reload"
+        />
         <template v-else>
           <el-alert
-              class="mb-3"
-              type="warning"
-              show-icon
-              :closable="false"
-              title="sysconfig.toml 固件只在开机时读一次：右下角全局保存之后必须重启飞控才生效。协议、通道数、量程三者要对得上你的接收机，接错会让所有通道一起乱动。"
+            class="mb-3"
+            type="warning"
+            show-icon
+            :closable="false"
+            title="sysconfig.toml 固件只在开机时读一次：右下角全局保存之后必须重启飞控才生效。协议、通道数、量程三者要对得上你的接收机，接错会让所有通道一起乱动。"
           />
           <el-card shadow="never" class="pane-card">
             <template #header>
@@ -274,7 +351,9 @@
                 <template #default="s">{{ s.row.field.label }}</template>
               </el-table-column>
               <el-table-column label="键名" width="140">
-                <template #default="s"><code class="mono">{{ s.row.key }}</code></template>
+                <template #default="s"
+                  ><code class="mono">{{ s.row.key }}</code></template
+                >
               </el-table-column>
               <el-table-column label="飞控上的值" width="140">
                 <template #default="s">
@@ -286,22 +365,29 @@
               <el-table-column label="改成" min-width="200">
                 <template #default="s">
                   <el-select
-                      v-if="s.row.field.kind === 'enum'"
-                      :data-search-key="`toml:pilot-cmd.device.${s.row.key}`" v-model="drafts[s.row.dk]"
-                      size="small"
-                      clearable
-                      :placeholder="`当前 ${s.row.rawText}`"
-                      @change="commitPilotField(PILOT_DEVICE, s.row)"
+                    v-if="s.row.field.kind === 'enum'"
+                    :data-search-key="`toml:pilot-cmd.device.${s.row.key}`"
+                    v-model="drafts[s.row.dk]"
+                    size="small"
+                    clearable
+                    :placeholder="`当前 ${s.row.rawText}`"
+                    @change="commitPilotField(PILOT_DEVICE, s.row)"
                   >
-                    <el-option v-for="opt in enumOptions(s.row.field, s.row.raw)" :key="opt.value" :label="enumOptionLabel(opt)" :value="opt.value" />
+                    <el-option
+                      v-for="opt in enumOptions(s.row.field, s.row.raw)"
+                      :key="opt.value"
+                      :label="enumOptionLabel(opt)"
+                      :value="opt.value"
+                    />
                   </el-select>
                   <el-input
-                      v-else
-                      :data-search-key="`toml:pilot-cmd.device.${s.row.key}`" v-model="drafts[s.row.dk]"
-                      size="small"
-                      :placeholder="s.row.field.kind === 'range' ? `[1000,2000] 这样的两个整数` : `当前 ${s.row.rawText}`"
-                      @keyup.enter="commitPilotField(PILOT_DEVICE, s.row)"
-                      @blur="commitPilotField(PILOT_DEVICE, s.row)"
+                    v-else
+                    :data-search-key="`toml:pilot-cmd.device.${s.row.key}`"
+                    v-model="drafts[s.row.dk]"
+                    size="small"
+                    :placeholder="s.row.field.kind === 'range' ? `[1000,2000] 这样的两个整数` : `当前 ${s.row.rawText}`"
+                    @keyup.enter="commitPilotField(PILOT_DEVICE, s.row)"
+                    @blur="commitPilotField(PILOT_DEVICE, s.row)"
                   />
                   <div v-if="errors[s.row.dk]" class="draft-hit">{{ errors[s.row.dk] }}</div>
                   <div v-else-if="notes[s.row.dk]" class="draft-hit ok">{{ notes[s.row.dk] }}</div>
@@ -316,16 +402,19 @@
           </el-card>
 
           <el-card shadow="never" class="pane-card">
-            <template #header><div class="card-header"><span>摇杆通道映射 [pilot-cmd].stick-channel</span></div></template>
+            <template #header
+              ><div class="card-header"><span>摇杆通道映射 [pilot-cmd].stick-channel</span></div></template
+            >
             <el-form inline class="mb-3" @submit.prevent>
               <el-form-item label="stick-channel（顺序是 [yaw, throttle, roll, pitch]）">
                 <el-input
-                    data-search-key="toml:pilot-cmd.stick-channel" v-model="drafts.stick"
-                    style="width: 220px"
-                    size="small"
-                    :placeholder="`当前 ${stickText}`"
-                    @keyup.enter="commitStick"
-                    @blur="commitStick"
+                  data-search-key="toml:pilot-cmd.stick-channel"
+                  v-model="drafts.stick"
+                  style="width: 220px"
+                  size="small"
+                  :placeholder="`当前 ${stickText}`"
+                  @keyup.enter="commitStick"
+                  @blur="commitStick"
                 />
               </el-form-item>
             </el-form>
@@ -334,13 +423,21 @@
             <el-table :data="stickRows" border size="small" max-height="480" style="width: 100%">
               <el-table-column prop="axis" label="轴（按 [pilot-cmd] 注释的次序）" width="220" />
               <el-table-column label="映射通道" width="120" align="center">
-                <template #default="s"><span class="mono dsh-num">CH{{ s.row.channel || '--' }}</span></template>
+                <template #default="s"
+                  ><span class="mono dsh-num">CH{{ s.row.channel || '--' }}</span></template
+                >
               </el-table-column>
               <el-table-column label="该通道当前 PWM" width="170" align="center">
-                <template #default="s"><span class="mono dsh-num" v-flash-on-change="rcFlash(valueOf(s.row.channel))">{{ fmt(valueOf(s.row.channel)) }}</span></template>
+                <template #default="s"
+                  ><span class="mono dsh-num" v-flash-on-change="rcFlash(valueOf(s.row.channel))">{{
+                    fmt(valueOf(s.row.channel))
+                  }}</span></template
+                >
               </el-table-column>
               <el-table-column label="本次极值" min-width="160" align="center">
-                <template #default="s"><span class="mono dsh-num">{{ extremeText(s.row.channel) }}</span></template>
+                <template #default="s"
+                  ><span class="mono dsh-num">{{ extremeText(s.row.channel) }}</span></template
+                >
               </el-table-column>
             </el-table>
             <p class="foot-note">
@@ -354,14 +451,21 @@
       <!-- 4. 模式与指令：[[pilot-cmd.mode]] / [[pilot-cmd.command]] -->
       <el-tab-pane name="modes">
         <template #label>模式与指令<el-badge v-if="dirtyToml" :value="dirtyToml" class="tab-badge" /></template>
-        <EmptyStateAction v-if="!fc.loaded" title="配置尚未就绪" reason="还没从飞控读到 sysconfig.toml，不展示假数据" action-label="从飞控读取配置" :action-disabled="!mav.connected.value || !!fc.busy" @action="reload" />
+        <EmptyStateAction
+          v-if="!fc.loaded"
+          title="配置尚未就绪"
+          reason="还没从飞控读到 sysconfig.toml，不展示假数据"
+          action-label="从飞控读取配置"
+          :action-disabled="!mav.connected.value || !!fc.busy"
+          @action="reload"
+        />
         <template v-else>
           <el-alert
-              class="mb-3"
-              type="error"
-              show-icon
-              :closable="false"
-              title="模式分配是炸机级配置：区间互相重叠或通道拨错，解锁瞬间就可能进错模式。改完请先在地面、不上桨验证每个开关档，再考虑飞行。"
+            class="mb-3"
+            type="error"
+            show-icon
+            :closable="false"
+            title="模式分配是炸机级配置：区间互相重叠或通道拨错，解锁瞬间就可能进错模式。改完请先在地面、不上桨验证每个开关档，再考虑飞行。"
           />
           <el-card v-for="tbl in tables" :key="tbl.path" shadow="never" class="pane-card">
             <template #header>
@@ -380,8 +484,29 @@
               </el-table-column>
               <el-table-column v-for="f in tbl.fields" :key="f.key" :label="f.label" min-width="190">
                 <template #default="s">
-                   <el-select v-if="f.kind === 'enum'" :data-search-key="`toml:${tbl.path}[${s.$index}].${f.key}`" v-model="drafts[s.row.dk[f.key]]" size="small" clearable :placeholder="`当前 ${s.row.text[f.key]}`" @change="commitTableField(tbl.path, s.row, f)"><el-option v-for="option in enumOptions(f, s.row.raw[f.key])" :key="option.value" :label="enumOptionLabel(option)" :value="option.value" /></el-select>
-                   <el-input v-else :data-search-key="`toml:${tbl.path}[${s.$index}].${f.key}`" v-model="drafts[s.row.dk[f.key]]" size="small" :placeholder="`当前 ${s.row.text[f.key]}`" @keyup.enter="commitTableField(tbl.path, s.row, f)" @blur="commitTableField(tbl.path, s.row, f)" />
+                  <el-select
+                    v-if="f.kind === 'enum'"
+                    :data-search-key="`toml:${tbl.path}[${s.$index}].${f.key}`"
+                    v-model="drafts[s.row.dk[f.key]]"
+                    size="small"
+                    clearable
+                    :placeholder="`当前 ${s.row.text[f.key]}`"
+                    @change="commitTableField(tbl.path, s.row, f)"
+                    ><el-option
+                      v-for="option in enumOptions(f, s.row.raw[f.key])"
+                      :key="option.value"
+                      :label="enumOptionLabel(option)"
+                      :value="option.value"
+                  /></el-select>
+                  <el-input
+                    v-else
+                    :data-search-key="`toml:${tbl.path}[${s.$index}].${f.key}`"
+                    v-model="drafts[s.row.dk[f.key]]"
+                    size="small"
+                    :placeholder="`当前 ${s.row.text[f.key]}`"
+                    @keyup.enter="commitTableField(tbl.path, s.row, f)"
+                    @blur="commitTableField(tbl.path, s.row, f)"
+                  />
                   <div v-if="errors[s.row.dk[f.key]]" class="draft-hit">{{ errors[s.row.dk[f.key]] }}</div>
                   <div v-else-if="notes[s.row.dk[f.key]]" class="draft-hit ok">{{ notes[s.row.dk[f.key]] }}</div>
                   <div v-else-if="f.hint" class="raw-hint">{{ f.hint }}</div>
@@ -389,7 +514,9 @@
               </el-table-column>
               <el-table-column label="该通道现在的 PWM / 判定" width="200" align="center">
                 <template #default="s">
-                  <span class="mono dsh-num" v-flash-on-change="rcFlash(valueOf(s.row.raw.channel))">{{ fmt(valueOf(s.row.raw.channel)) }}</span>
+                  <span class="mono dsh-num" v-flash-on-change="rcFlash(valueOf(s.row.raw.channel))">{{
+                    fmt(valueOf(s.row.raw.channel))
+                  }}</span>
                   <el-tag size="small" :type="rangeState(s.row.raw.range, s.row.raw.channel).type" class="ml-2">
                     {{ rangeState(s.row.raw.range, s.row.raw.channel).text }}
                   </el-tag>
@@ -458,20 +585,37 @@ const route = useRoute()
 const { isDark } = useTheme()
 const channelColors = computed(() => chartColors(isDark.value ? 'dark' : 'light'))
 // 搜索定位先打开真实字段所在页签，焦点由全局搜索工具在 DOM 就绪后处理。
-watch(() => route.query.focus, (key) => {
-  if (typeof key !== 'string') return
-  if (key.startsWith('param:RC:')) activeTab.value = 'travel'
-  else if (key.startsWith('toml:pilot-cmd.mode[') || key.startsWith('toml:pilot-cmd.command[')) activeTab.value = 'modes'
-  else if (key.startsWith('toml:pilot-cmd')) activeTab.value = 'pilot'
-}, { immediate: true })
+watch(
+  () => route.query.focus,
+  (key) => {
+    if (typeof key !== 'string') return
+    if (key.startsWith('param:RC:')) activeTab.value = 'travel'
+    else if (key.startsWith('toml:pilot-cmd.mode[') || key.startsWith('toml:pilot-cmd.command['))
+      activeTab.value = 'modes'
+    else if (key.startsWith('toml:pilot-cmd')) activeTab.value = 'pilot'
+  },
+  { immediate: true }
+)
 
 const rc = mav.data.rcChannels
 const servos = mav.data.servos
-const rcAxis = (ch) => { const v = valueOf(ch); return v == null ? 0 : Math.max(-1, Math.min(1, (v - 1500) / 500)) }
-const modelTransform = computed(() => ({ transform: `rotateX(${rcAxis(stickMap.value.pitch) * -12}deg) rotateZ(${rcAxis(stickMap.value.roll) * -18}deg)` }))
-function stickAngle(ch) { const v = valueOf(ch); return v == null ? '--' : `${(rcAxis(ch) * 30).toFixed(0)}°` }
-function propStyle(index) { const values = servos.online ? servos.raw : []; const v = values[index - 1] || 0; return { opacity: servos.online ? Math.min(1, 0.25 + v / 2400) : 0.35 } }
-const SHOW_CHANNELS = 16      // 协议最多 18 路，界面按遥控器实际常见的 16 路展示
+const rcAxis = (ch) => {
+  const v = valueOf(ch)
+  return v == null ? 0 : Math.max(-1, Math.min(1, (v - 1500) / 500))
+}
+const modelTransform = computed(() => ({
+  transform: `rotateX(${rcAxis(stickMap.value.pitch) * -12}deg) rotateZ(${rcAxis(stickMap.value.roll) * -18}deg)`,
+}))
+function stickAngle(ch) {
+  const v = valueOf(ch)
+  return v == null ? '--' : `${(rcAxis(ch) * 30).toFixed(0)}°`
+}
+function propStyle(index) {
+  const values = servos.online ? servos.raw : []
+  const v = values[index - 1] || 0
+  return { opacity: servos.online ? Math.min(1, 0.25 + v / 2400) : 0.35 }
+}
+const SHOW_CHANNELS = 16 // 协议最多 18 路，界面按遥控器实际常见的 16 路展示
 const PWM_MIN = 1000
 const PWM_MAX = 2000
 const PWM_CENTER = 1500
@@ -520,7 +664,7 @@ function getStickStyle(chX, chY) {
 // 飞控原文 [pilot-cmd].stick-channel = [4,3,1,2] 与这条排法同义；读到别的值时摇杆跟着原文走，
 // 界面注释不作数。缺位或越界才退回默认，并且卡底会写明"页面默认"。
 const AXIS_NAMES = { roll: '右手·横滚', pitch: '右手·俯仰', throttle: '左手·油门', yaw: '左手·航向' }
-const STICK_KEYS = ['yaw', 'throttle', 'roll', 'pitch']   // sysconfig 那行注释给的次序
+const STICK_KEYS = ['yaw', 'throttle', 'roll', 'pitch'] // sysconfig 那行注释给的次序
 const DEFAULT_STICK_MAP = { roll: 1, pitch: 2, throttle: 3, yaw: 4 }
 
 const stickMap = computed(() => {
@@ -534,11 +678,11 @@ const stickMap = computed(() => {
 })
 
 /** 摇杆卡底那一行：通道号从哪来的，得让人看见 */
-const stickMapSource = computed(() => (
-    Array.isArray(stickRaw.value) && STICK_KEYS.every((_, i) => Number(stickRaw.value[i]) >= 1)
-        ? `飞控原文 ${fmtRaw(stickRaw.value)}`
-        : '页面默认 [4,3,1,2]（飞控这条没读到）'
-))
+const stickMapSource = computed(() =>
+  Array.isArray(stickRaw.value) && STICK_KEYS.every((_, i) => Number(stickRaw.value[i]) >= 1)
+    ? `飞控原文 ${fmtRaw(stickRaw.value)}`
+    : '页面默认 [4,3,1,2]（飞控这条没读到）'
+)
 
 /** 第 ch 路是摇杆的哪根轴；不是摇杆的轴返回空串，界面就只写 CH 号 */
 function channelHint(ch) {
@@ -556,8 +700,12 @@ function getChannelColor(ch) {
 
 /** 闪烁只认当前会话真实 RC 帧，不由动画或定时器伪造数据活性。 */
 function rcFlash(value) {
-  return { value, enabled: mav.canOperate.value && mav.deviceState.valid.rc && value != null,
-    stamp: mav.deviceState.freshness.rc, session: mav.deviceState.sessionId }
+  return {
+    value,
+    enabled: mav.canOperate.value && mav.deviceState.valid.rc && value != null,
+    stamp: mav.deviceState.freshness.rc,
+    session: mav.deviceState.sessionId,
+  }
 }
 
 /** RSSI：协议 0~255，0 与 255 都按"接收机不上报"处理 */
@@ -569,9 +717,7 @@ const rssiText = computed(() => {
 })
 
 /* ---------- 会话极值（只做观测，帮助判断行程与中值） ---------- */
-const extremes = reactive(
-    Array.from({ length: SHOW_CHANNELS }, () => ({ min: null, max: null }))
-)
+const extremes = reactive(Array.from({ length: SHOW_CHANNELS }, () => ({ min: null, max: null })))
 
 function extremeText(ch) {
   const e = extremes[(ch | 0) - 1]
@@ -580,7 +726,10 @@ function extremeText(ch) {
 }
 
 function resetExtremes() {
-  extremes.forEach((e) => { e.min = null; e.max = null })
+  extremes.forEach((e) => {
+    e.min = null
+    e.max = null
+  })
   ElMessage.info('已清零本页记录的会话极值（不影响飞控内数据）')
 }
 
@@ -597,12 +746,15 @@ function sampleExtremes() {
 }
 
 // 只在飞控时基往前走的时候记一次，避免同一帧被重复统计
-watch(() => rc.timeBootMs, (t) => {
-  if (t) {
-    lastRxAt.value = Date.now()
-    sampleExtremes()
+watch(
+  () => rc.timeBootMs,
+  (t) => {
+    if (t) {
+      lastRxAt.value = Date.now()
+      sampleExtremes()
+    }
   }
-})
+)
 
 onMounted(() => {
   aliveTimer = setInterval(() => {
@@ -612,7 +764,10 @@ onMounted(() => {
 
 onUnmounted(() => {
   // 定时器必须清掉：切页后它还在跑就是内存泄漏
-  if (aliveTimer) { clearInterval(aliveTimer); aliveTimer = null }
+  if (aliveTimer) {
+    clearInterval(aliveTimer)
+    aliveTimer = null
+  }
 })
 
 /* ================================================================
@@ -624,7 +779,7 @@ onUnmounted(() => {
  * revision 由每个 setter 递增，lastPullAt / crc32Hex 在重新拉取时变化。
  */
 const stamp = computed(
-    () => `${fc.revision}|${fc.lastPullAt}|${fc.files.sysconfig.crc32Hex}|${fc.files.param.crc32Hex}`,
+  () => `${fc.revision}|${fc.lastPullAt}|${fc.files.sysconfig.crc32Hex}|${fc.files.param.crc32Hex}`
 )
 
 const drafts = reactive({})
@@ -642,11 +797,11 @@ function clearLocal() {
  * 故意不监听 revision：自己改出来的提示要留在格子上，否则一写就消失看不见。
  */
 watch(
-    () => `${fc.lastPullAt}|${fc.files.sysconfig.crc32Hex}|${fc.files.param.crc32Hex}`,
-    () => {
-      clearLocal()
-      ElMessage.info('本页表格已按飞控最新原文重新显示')
-    },
+  () => `${fc.lastPullAt}|${fc.files.sysconfig.crc32Hex}|${fc.files.param.crc32Hex}`,
+  () => {
+    clearLocal()
+    ElMessage.info('本页表格已按飞控最新原文重新显示')
+  }
 )
 
 const pullState = computed(() => {
@@ -674,9 +829,9 @@ async function reload() {
   if (fc.hasChanges) {
     try {
       await ElMessageBox.confirm(
-          `现在有 ${fc.changeList.length} 处本地改动还没保存。重新读取会丢掉这些改动（不会写回飞控）。`,
-          '确认重新读取',
-          { type: 'warning', confirmButtonText: '丢掉并重新读取', cancelButtonText: '先别动' },
+        `现在有 ${fc.changeList.length} 处本地改动还没保存。重新读取会丢掉这些改动（不会写回飞控）。`,
+        '确认重新读取',
+        { type: 'warning', confirmButtonText: '丢掉并重新读取', cancelButtonText: '先别动' }
       )
     } catch {
       return
@@ -690,8 +845,9 @@ async function reload() {
 /** 数字/数组/字符串的"值没变"判断：没变就不产生改动记录 */
 function sameValue(a, b) {
   if (Array.isArray(a) || Array.isArray(b)) {
-    return Array.isArray(a) && Array.isArray(b)
-        && a.length === b.length && a.every((x, i) => Number(x) === Number(b[i]))
+    return (
+      Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((x, i) => Number(x) === Number(b[i]))
+    )
   }
   if (typeof a === 'number') return Number(b) === a
   return String(a) === String(b)
@@ -774,8 +930,8 @@ const stickRows = computed(() => {
 const auxState = computed(() => {
   const v = fc.tomlValue(PILOT_SECTION, 'aux-channel')
   return v === undefined
-      ? 'aux-channel 在原文里是注释掉的状态（页面按"未配置"显示）。'
-      : `aux-channel 读到的原文是 ${fmtRaw(v)}。`
+    ? 'aux-channel 在原文里是注释掉的状态（页面按"未配置"显示）。'
+    : `aux-channel 读到的原文是 ${fmtRaw(v)}。`
 })
 
 // 轴名与次序都在上面 AXIS_NAMES / STICK_KEYS（次序取自样例注释
@@ -791,14 +947,19 @@ function commitStick() {
   } catch (e) {
     return fail('stick', (e && e.message) || String(e))
   }
-  ok('stick', `已记在本地：stick-channel ${fmtRaw(stickRaw.value)} → ${fmtRaw(res.value)}（数组保持 [4,3,1,2] 的原文写法）`)
+  ok(
+    'stick',
+    `已记在本地：stick-channel ${fmtRaw(stickRaw.value)} → ${fmtRaw(res.value)}（数组保持 [4,3,1,2] 的原文写法）`
+  )
 }
 
 /** [pilot-cmd.device] 与两张表共用：校验并定点写回 sysconfig */
 function enumOptions(field, current) {
   return optionsWithCurrent(field?.options || [], current, field?.label || '未知值')
 }
-function enumOptionLabel(option) { return optionLabel(option) }
+function enumOptionLabel(option) {
+  return optionLabel(option)
+}
 
 function commitPilotField(path, row) {
   const field = row.field
@@ -833,7 +994,8 @@ function tableRows(path, fields) {
     for (const f of fields) {
       dk[f.key] = `${path}:${index}:${f.key}`
       raw[f.key] = src[f.key]
-      text[f.key] = srcRaw[f.key] !== undefined ? String(srcRaw[f.key]) : (src[f.key] === undefined ? '未配置' : fmtRaw(src[f.key]))
+      text[f.key] =
+        srcRaw[f.key] !== undefined ? String(srcRaw[f.key]) : src[f.key] === undefined ? '未配置' : fmtRaw(src[f.key])
     }
     return { index, keys: t.keys || Object.keys(src), raw, text, dk }
   })
@@ -857,8 +1019,14 @@ const tables = computed(() => [
 ])
 
 /** 表格单元格里 commitPilotField 需要 index + raw，包一层取出来 */
-function rangeDraft(row, field) { const value = row.raw[field.key]; return Array.isArray(value) ? value.map(Number) : [1000, 2000] }
-function setRangeDraft(row, field, value) { drafts[row.dk[field.key]] = `[${value[0]},${value[1]}]`; commitTableField(PILOT_MODE, row, field) }
+function rangeDraft(row, field) {
+  const value = row.raw[field.key]
+  return Array.isArray(value) ? value.map(Number) : [1000, 2000]
+}
+function setRangeDraft(row, field, value) {
+  drafts[row.dk[field.key]] = `[${value[0]},${value[1]}]`
+  commitTableField(PILOT_MODE, row, field)
+}
 
 function commitTableField(path, row, field) {
   return commitPilotField(path, { field, dk: row.dk[field.key], raw: row.raw[field.key], index: row.index })
@@ -878,33 +1046,32 @@ function addRow(path, fields) {
     copy[f.key] = Array.isArray(v) ? v.slice() : v
   }
   ElMessageBox.confirm(
-      `将按最后一行的键集合（${fields.map((f) => f.key).join(' / ')}）追加到 ${path} 段，值原样抄最后一行。
-`
-      + '追加后请把这一行的模式号 / 通道 / 区间改成你要的，再走右下角全局保存。',
-      '确认追加一行',
-      { type: 'warning', confirmButtonText: '追加', cancelButtonText: '取消' },
+    `将按最后一行的键集合（${fields.map((f) => f.key).join(' / ')}）追加到 ${path} 段，值原样抄最后一行。
+` + '追加后请把这一行的模式号 / 通道 / 区间改成你要的，再走右下角全局保存。',
+    '确认追加一行',
+    { type: 'warning', confirmButtonText: '追加', cancelButtonText: '取消' }
   )
-      .then(() => {
-        clearLocal() // 增删会移动表格行，旧草稿的 index 不能再往别的行上落
-        fc.appendTomlTable(path, copy, '地面站新增（请核对数值）')
-        ElMessage.success('已追加到本地原文，记得改完再全局保存')
-      })
-      .catch(() => {})
+    .then(() => {
+      clearLocal() // 增删会移动表格行，旧草稿的 index 不能再往别的行上落
+      fc.appendTomlTable(path, copy, '地面站新增（请核对数值）')
+      ElMessage.success('已追加到本地原文，记得改完再全局保存')
+    })
+    .catch(() => {})
 }
 
 function removeRow(path, index, count) {
   ElMessageBox.confirm(
-      `删除 ${path} 段的第 ${index + 1} 行（共 ${count} 行）。`
-      + '这一行如果带行尾注释会一起消失；右下角全局保存才会写回飞控。',
-      '确认删除这一行',
-      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' },
+    `删除 ${path} 段的第 ${index + 1} 行（共 ${count} 行）。` +
+      '这一行如果带行尾注释会一起消失；右下角全局保存才会写回飞控。',
+    '确认删除这一行',
+    { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' }
   )
-      .then(() => {
-        clearLocal()
-        fc.removeTomlTable(path, index)
-        ElMessage.success('已从本地原文删除这一行')
-      })
-      .catch(() => {})
+    .then(() => {
+      clearLocal()
+      fc.removeTomlTable(path, index)
+      ElMessage.success('已从本地原文删除这一行')
+    })
+    .catch(() => {})
 }
 
 /** 区间判定：拿当前遥测与本行 range 比，只作为显示参考 */
@@ -913,21 +1080,78 @@ function rangeState(range, channel) {
   const v = valueOf(channel)
   if (v === null) return { text: '无遥测', type: 'info' }
   return v >= range[0] && v <= range[1]
-      ? { text: '落在区间内', type: 'success' }
-      : { text: '未落在区间内', type: 'info' }
+    ? { text: '落在区间内', type: 'success' }
+    : { text: '未落在区间内', type: 'info' }
 }
 </script>
 
 <style scoped>
-.rc-preview-inline { margin-top:14px; padding-top:10px; border-top:1px solid var(--dsh-border) }
-.preview-title { font-size:12px; color:var(--dsh-text-2); margin-bottom:4px }
-.rc-preview-inline :deep(.aircraft-3d) { height:190px }
-.rc-preview-inline .model-readout { display:flex; justify-content:space-between; color:var(--dsh-text-3); font:12px monospace }
+.rc-preview-inline {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--dsh-border);
+}
+.preview-title {
+  font-size: 12px;
+  color: var(--dsh-text-2);
+  margin-bottom: 4px;
+}
+.rc-preview-inline :deep(.aircraft-3d) {
+  height: 190px;
+}
+.rc-preview-inline .model-readout {
+  display: flex;
+  justify-content: space-between;
+  color: var(--dsh-text-3);
+  font: 12px monospace;
+}
 
-.model-body { position:absolute; left:105px; top:60px; width:50px; height:38px; display:grid; place-items:center; color:var(--dsh-accent); background:var(--dsh-surface); border:2px solid var(--dsh-accent); }
-.model-prop { position:absolute; width:30px; height:30px; display:grid; place-items:center; color:var(--dsh-success); font-size:24px; transition:opacity .12s }
-.model-prop--1 { left:42px; top:28px }.model-prop--2 { right:42px; top:28px }.model-prop--3 { left:42px; bottom:28px }.model-prop--4 { right:42px; bottom:28px }
-.model-readout { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; font:12px monospace; color:var(--dsh-text-2) }
+.model-body {
+  position: absolute;
+  left: 105px;
+  top: 60px;
+  width: 50px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  color: var(--dsh-accent);
+  background: var(--dsh-surface);
+  border: 2px solid var(--dsh-accent);
+}
+.model-prop {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  color: var(--dsh-success);
+  font-size: 24px;
+  transition: opacity 0.12s;
+}
+.model-prop--1 {
+  left: 42px;
+  top: 28px;
+}
+.model-prop--2 {
+  right: 42px;
+  top: 28px;
+}
+.model-prop--3 {
+  left: 42px;
+  bottom: 28px;
+}
+.model-prop--4 {
+  right: 42px;
+  bottom: 28px;
+}
+.model-readout {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font: 12px monospace;
+  color: var(--dsh-text-2);
+}
 .rc-config-container {
   padding: 20px;
   background-color: var(--dsh-surface-2);
@@ -1001,11 +1225,9 @@ function rangeState(range, channel) {
   margin-right: 8px;
 }
 
-
 .mb-3 {
   margin-bottom: 12px;
 }
-
 
 .sticks-layout {
   display: flex;

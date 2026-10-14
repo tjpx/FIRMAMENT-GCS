@@ -20,9 +20,9 @@
 /* 明暗公共部分：尺寸、圆角、间距、动效（两套主题共享，密度按"紧凑"定） */
 :root {
   /* ─── 主色族 ─── */
-  --dsh-accent: #66ccff;        /* FMT 主题色：填充、图形，两套主题的文字类强调也走它 */
-  --dsh-accent-hi: #9adcff;     /* 更亮一档：hover 提亮、图形高亮 */
-  --dsh-accent-lo: #2f9ede;     /* 更暗一档：渐变下端、描边 */
+  --dsh-accent: #66ccff; /* FMT 主题色：填充、图形，两套主题的文字类强调也走它 */
+  --dsh-accent-hi: #9adcff; /* 更亮一档：hover 提亮、图形高亮 */
+  --dsh-accent-lo: #2f9ede; /* 更暗一档：渐变下端、描边 */
   --dsh-ink-on-accent: #061826; /* 压在亮蓝上的字色（近墨，9.98:1） */
 
   /* ─── 圆角：中小（紧凑密度配套） ─── */
@@ -42,25 +42,25 @@
   --dsh-leading: 1.45;
 
   /* ─── 间距与控件高度（4px 基准的紧凑阶梯） ─── */
-  --dsp: 4px;                   /* 最小步长，供下面的派生值参考 */
+  --dsp: 4px; /* 最小步长，供下面的派生值参考 */
   --dsh-gap-xs: 4px;
   --dsh-gap-sm: 6px;
   --dsh-gap: 10px;
   --dsh-gap-lg: 14px;
   --dsh-gap-xl: 20px;
-  --dsh-row-h: 28px;            /* 按钮/输入框默认高 */
+  --dsh-row-h: 28px; /* 按钮/输入框默认高 */
   --dsh-row-h-sm: 24px;
-  --dsh-table-row-h: 30px;      /* 表格行目标高 */
-  --dsh-shell-h: 34px;          /* 顶栏 */
-  --dsh-foot-h: 26px;           /* 底栏状态条 */
-  --dsh-nav-w: 116px;           /* 左侧导航宽 */
+  --dsh-table-row-h: 30px; /* 表格行目标高 */
+  --dsh-shell-h: 34px; /* 顶栏 */
+  --dsh-foot-h: 26px; /* 底栏状态条 */
+  --dsh-nav-w: 116px; /* 左侧导航宽 */
 
-  --dsh-font-family: 'Inter', 'Helvetica Neue', Helvetica, 'PingFang SC',
-    'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+  --dsh-font-family:
+    'Inter', 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
   --dsh-font-mono: 'JetBrains Mono', 'Cascadia Mono', Consolas, 'Courier New', monospace;
 
   --dsh-transition: 0.16s ease;
-  --dsh-shadow-strength: 0.10;  /* 日间阴影更实，夜间靠边框分层 */
+  --dsh-shadow-strength: 0.1; /* 日间阴影更实，夜间靠边框分层 */
 }
 
 /* 数字读数按需挂载，不改变正文的 13px 紧凑密度与主题预着色。 */
@@ -72,11 +72,11 @@
 /* ─── 日间（中性近白 + 深蓝灰文字） ─── */
 :root,
 :root[data-theme='light'] {
-  --dsh-canvas: #f2f5f9;        /* L0 页面底 */
-  --dsh-surface: #ffffff;       /* L1 卡片、顶栏、侧栏 */
-  --dsh-surface-2: #f7f9fc;     /* L2 悬停、表头、次级面板 */
-  --dsh-surface-3: #eef2f8;     /* L3 选中、分组底 */
-  --dsh-chrome: #ffffff;        /* 外壳条（顶栏/侧栏/底栏） */
+  --dsh-canvas: #f2f5f9; /* L0 页面底 */
+  --dsh-surface: #ffffff; /* L1 卡片、顶栏、侧栏 */
+  --dsh-surface-2: #f7f9fc; /* L2 悬停、表头、次级面板 */
+  --dsh-surface-3: #eef2f8; /* L3 选中、分组底 */
+  --dsh-chrome: #ffffff; /* 外壳条（顶栏/侧栏/底栏） */
   --dsh-border: #dde3ec;
   --dsh-border-strong: #c3cbd8;
   --dsh-divider: #e8ecf2;
@@ -89,12 +89,12 @@
   /* 日间文字类强调直接压品牌蓝（业主选定）：1.90:1 是真数，留在契约里不假装达标；
      将来要整体回到可读优先，只改 --dsh-accent-ink 这一行就行。 */
   --dsh-accent-ink: #66ccff;
-  --dsh-accent-deep: #0a6fa8;   /* 结构线专用加深档：焦点环、聚焦描边，压白底 5.45:1 */
-  --dsh-accent-soft: #e6f4ff;   /* 主色浅底（标签底、选中底） */
+  --dsh-accent-deep: #0a6fa8; /* 结构线专用加深档：焦点环、聚焦描边，压白底 5.45:1 */
+  --dsh-accent-soft: #e6f4ff; /* 主色浅底（标签底、选中底） */
   --dsh-hover: #f0f4fa;
   --dsh-active: #e6ecf5;
   --dsh-scrim: rgba(15, 21, 32, 0.42);
-  --dsh-mix: #ffffff;           /* 派生色阶时向哪个方向混（EP 约定） */
+  --dsh-mix: #ffffff; /* 派生色阶时向哪个方向混（EP 约定） */
 
   /* 3D 视角面板与终端：这两块必须一直压暗（飞行姿态/黑底字符），
      但它们也是"面"，所以照样走令牌，日间只是浅一点的黑，不写死在页面里。 */
@@ -102,19 +102,19 @@
   --dsh-console-fg: #e0e0e0;
   --dsh-console-hi: #64b5f6;
   --dsh-console-dim: #8899bb;
-  --dsh-ink-on-fill: #ffffff;           /* 彩色填充上的字：日间白（业主选定亮填充+白字），夜间反过来压深 */
+  --dsh-ink-on-fill: #ffffff; /* 彩色填充上的字：日间白（业主选定亮填充+白字），夜间反过来压深 */
 
   /* 功能色：日间用"墨"级亮度，保证当文字也够 4.5:1 */
-  --dsh-success: #1a7a3f;           /* 压白底要保住 4.5:1（#2e9e5b 只有 3.07，做文字会瞎） */
-  --dsh-warning: #a1620a;                /* 黄色当文字用的那一档：压白底 4.9:1 */
-  --dsh-warning-fill: #f0b429;           /* 亮黄只做按钮填充，绝不当文字（白底 1.86:1 会瞎） */
+  --dsh-success: #1a7a3f; /* 压白底要保住 4.5:1（#2e9e5b 只有 3.07，做文字会瞎） */
+  --dsh-warning: #a1620a; /* 黄色当文字用的那一档：压白底 4.9:1 */
+  --dsh-warning-fill: #f0b429; /* 亮黄只做按钮填充，绝不当文字（白底 1.86:1 会瞎） */
   --dsh-danger: #c53d3d;
   --dsh-info: #5b6b80;
   /* 炸机/未解锁这类必须刺眼的地方单独给一档亮红，别用表单校验红 */
   --dsh-danger-vivid: #e0454b;
 
   --dsh-shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06), 0 2px 8px rgba(16, 24, 40, 0.06);
-  --dsh-shadow: 0 2px 6px rgba(16, 24, 40, 0.08), 0 8px 20px rgba(16, 24, 40, 0.10);
+  --dsh-shadow: 0 2px 6px rgba(16, 24, 40, 0.08), 0 8px 20px rgba(16, 24, 40, 0.1);
   --dsh-shadow-lg: 0 12px 32px rgba(16, 24, 40, 0.14);
 
   /* ─── 老名字别名（各页现有 var(--color-*) 写法继续有效） ─── */
@@ -165,7 +165,7 @@
 
   /* 夜间主色就是 #66ccff 本体：压深蓝灰底 9.37:1，当文字、当按钮底都够 */
   --dsh-accent-ink: var(--dsh-accent);
-  --dsh-accent-deep: var(--dsh-accent);   /* 夜间没有浅底要压，结构线不需要加深 */
+  --dsh-accent-deep: var(--dsh-accent); /* 夜间没有浅底要压，结构线不需要加深 */
   --dsh-accent-soft: #123045;
   --dsh-hover: #1c2637;
   --dsh-active: #223046;
@@ -176,11 +176,11 @@
   --dsh-console-fg: #dbe7f4;
   --dsh-console-hi: #8fd0ff;
   --dsh-console-dim: #7d93b8;
-  --dsh-ink-on-fill: var(--dsh-ink-on-accent);  /* 夜间填充是亮色系，字色反过来压深 */
+  --dsh-ink-on-fill: var(--dsh-ink-on-accent); /* 夜间填充是亮色系，字色反过来压深 */
 
   --dsh-success: #5dc98f;
   --dsh-warning: #e9b949;
-  --dsh-warning-fill: #e9b949;           /* 夜间亮黄本来就是这一档，填充与文字同源 */
+  --dsh-warning-fill: #e9b949; /* 夜间亮黄本来就是这一档，填充与文字同源 */
   --dsh-danger: #ff7b72;
   --dsh-info: #8fa3bd;
   --dsh-danger-vivid: #ff5d5d;
@@ -215,7 +215,6 @@
   --color-hover-bg: var(--dsh-hover);
   --color-active-bg: var(--dsh-active);
 }
-
 
 /* ─── 老名字别名：尺寸/间距/圆角/阴影/层级 ─── */
 /* style.css 与部分页面还在用这套名字；这里一次性指向新的密度令牌，
@@ -281,12 +280,34 @@
 }
 
 /* 真实值变化提示与唯一全局危险提示；减少动态效果时完全静态。 */
-.dsh-flash { animation: dsh-value-flash 300ms ease-out; border-radius: var(--dsh-radius-sm); }
-@keyframes dsh-value-flash { from { background-color: var(--dsh-accent-soft); } to { background-color: transparent; } }
-.dsh-danger-breathe { animation: dsh-danger-breathe 800ms ease-in-out infinite alternate; }
-@keyframes dsh-danger-breathe { from { opacity: 1; } to { opacity: .55; } }
+.dsh-flash {
+  animation: dsh-value-flash 300ms ease-out;
+  border-radius: var(--dsh-radius-sm);
+}
+@keyframes dsh-value-flash {
+  from {
+    background-color: var(--dsh-accent-soft);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+.dsh-danger-breathe {
+  animation: dsh-danger-breathe 800ms ease-in-out infinite alternate;
+}
+@keyframes dsh-danger-breathe {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.55;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
-  .dsh-flash, .dsh-danger-breathe { animation: none !important; }
+  .dsh-flash,
+  .dsh-danger-breathe {
+    animation: none !important;
+  }
 }
 
 /* 全局底色写在 html 上（比 body 更早生效，配合 index.html 的预着色消掉白闪） */

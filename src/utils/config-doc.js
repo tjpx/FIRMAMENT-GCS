@@ -74,14 +74,29 @@ function splitKeyValue(line) {
   for (let i = 0; i < rest.length; i++) {
     const c = rest[i]
     if (quote) {
-      if (c === '\\') { i++; continue }
+      if (c === '\\') {
+        i++
+        continue
+      }
       if (c === quote) quote = null
       continue
     }
-    if (c === '"' || c === "'") { quote = c; continue }
-    if (c === '[' || c === '{') { depth++; continue }
-    if (c === ']' || c === '}') { depth--; continue }
-    if (c === '#' && depth === 0 && i > 0 && /\s/.test(rest[i - 1])) { end = i; break }
+    if (c === '"' || c === "'") {
+      quote = c
+      continue
+    }
+    if (c === '[' || c === '{') {
+      depth++
+      continue
+    }
+    if (c === ']' || c === '}') {
+      depth--
+      continue
+    }
+    if (c === '#' && depth === 0 && i > 0 && /\s/.test(rest[i - 1])) {
+      end = i
+      break
+    }
   }
   const value = rest.slice(0, end).replace(/\s+$/, '')
   return {
@@ -105,8 +120,10 @@ export function parseTomlValue(raw) {
   if (/^-?\d*\.\d+(e[-+]?\d+)?$/i.test(t) || /^-?\d+(\.\d+)?e[-+]?\d+$/i.test(t)) {
     return { type: 'float', value: Number(t) }
   }
-  if ((t.startsWith('"') && t.endsWith('"') && t.length > 1) ||
-      (t.startsWith("'") && t.endsWith("'") && t.length > 1)) {
+  if (
+    (t.startsWith('"') && t.endsWith('"') && t.length > 1) ||
+    (t.startsWith("'") && t.endsWith("'") && t.length > 1)
+  ) {
     const inner = t.slice(1, -1)
     return { type: 'string', value: t[0] === '"' ? inner.replace(/\\"/g, '"').replace(/\\\\/g, '\\') : inner }
   }
@@ -114,13 +131,27 @@ export function parseTomlValue(raw) {
     // 一维数组（本项目的配置里只有 [4,3,1,2] 和 [1000,1300] 这种）
     const inner = t.slice(1, t.lastIndexOf(']'))
     const parts = []
-    let depth = 0, quote = null, cur = ''
+    let depth = 0,
+      quote = null,
+      cur = ''
     for (const c of inner) {
-      if (quote) { cur += c; if (c === quote) quote = null; continue }
-      if (c === '"' || c === "'") { quote = c; cur += c; continue }
+      if (quote) {
+        cur += c
+        if (c === quote) quote = null
+        continue
+      }
+      if (c === '"' || c === "'") {
+        quote = c
+        cur += c
+        continue
+      }
       if (c === '[') depth++
       if (c === ']') depth--
-      if (c === ',' && depth === 0) { parts.push(cur); cur = '' ; continue }
+      if (c === ',' && depth === 0) {
+        parts.push(cur)
+        cur = ''
+        continue
+      }
       cur += c
     }
     if (cur.trim() !== '') parts.push(cur)
@@ -158,17 +189,23 @@ function createReviewHistory(initialLines, getLines, setLines) {
     const lines = getLines()
     let start = 0
     while (start < current.length && start < lines.length && current[start].text === lines[start]) start++
-    let end = current.length, newEnd = lines.length
-    while (end > start && newEnd > start && current[end - 1].text === lines[newEnd - 1]) { end--; newEnd-- }
+    let end = current.length,
+      newEnd = lines.length
+    while (end > start && newEnd > start && current[end - 1].text === lines[newEnd - 1]) {
+      end--
+      newEnd--
+    }
     if (range) {
       start = range.start
       end = start + range.deleteCount
       newEnd = start + range.insertCount
     }
-    const inserted = lines.slice(start, newEnd).map((text, i) =>
-      end - start === newEnd - start ? { id: current[start + i].id, text } : token(text))
+    const inserted = lines
+      .slice(start, newEnd)
+      .map((text, i) => (end - start === newEnd - start ? { id: current[start + i].id, text } : token(text)))
     const patch = {
-      removed: current.slice(start, end), inserted,
+      removed: current.slice(start, end),
+      inserted,
       left: start ? current[start - 1].id : null,
       right: end < current.length ? current[end].id : null,
     }
@@ -182,7 +219,11 @@ function createReviewHistory(initialLines, getLines, setLines) {
     let start
     if (patch.removed.length) {
       start = lines.findIndex((line) => line.id === patch.removed[0].id)
-      if (start < 0 || patch.removed.some((line, i) => lines[start + i]?.id !== line.id || lines[start + i]?.text !== line.text)) throw new Error('依赖冲突')
+      if (
+        start < 0 ||
+        patch.removed.some((line, i) => lines[start + i]?.id !== line.id || lines[start + i]?.text !== line.text)
+      )
+        throw new Error('依赖冲突')
     } else {
       const left = patch.left === null ? -1 : lines.findIndex((line) => line.id === patch.left)
       const right = patch.right === null ? lines.length : lines.findIndex((line) => line.id === patch.right)
@@ -195,17 +236,26 @@ function createReviewHistory(initialLines, getLines, setLines) {
   return {
     record,
     changes: () => records.map((r) => ({ ...r.change })),
-    reset() { current = baseline.slice(); records = []; setLines(initialLines.slice()) },
+    reset() {
+      current = baseline.slice()
+      records = []
+      setLines(initialLines.slice())
+    },
     revertChange(index) {
-      if (!Number.isInteger(index) || index < 0 || index >= records.length) throw new Error('变更索引已失效，请刷新审阅列表后重试')
+      if (!Number.isInteger(index) || index < 0 || index >= records.length)
+        throw new Error('变更索引已失效，请刷新审阅列表后重试')
       let candidate = baseline.slice()
       const remaining = []
       for (let i = 0; i < records.length; i++) {
         if (i === index) continue
         const entry = records[i]
         const before = candidate.slice()
-        try { candidate = replay(candidate, entry.patch) } catch {
-          throw new Error(`无法安全还原此项：后续第 ${i + 1} 项「${entry.change.where}」依赖该改动或其文本位置，请先还原后续依赖项`)
+        try {
+          candidate = replay(candidate, entry.patch)
+        } catch {
+          throw new Error(
+            `无法安全还原此项：后续第 ${i + 1} 项「${entry.change.where}」依赖该改动或其文本位置，请先还原后续依赖项`
+          )
         }
         remaining.push({ ...entry, before, after: candidate.slice() })
       }
@@ -225,7 +275,13 @@ export function parseTomlDoc(text) {
   const original = text
   const originalLines = original.split(/\r\n|\n/)
   let work = originalLines.slice()
-  const history = createReviewHistory(originalLines, () => work, (lines) => { work = lines })
+  const history = createReviewHistory(
+    originalLines,
+    () => work,
+    (lines) => {
+      work = lines
+    }
+  )
 
   // 每次改完都重建索引：文件只有 100~200 行，重建比维护偏移量可靠得多。
   function index() {
@@ -288,7 +344,10 @@ export function parseTomlDoc(text) {
       }
       const text = `${indent}${key} = ${formatTomlValue(value)}`
       work.splice(insertAt, 0, text)
-      history.record({ file: 'sysconfig.toml', op: '新增', where: `${label}.${key}`, from: '（原本没有这一项）', to: text.trim() }, { start: insertAt, deleteCount: 0, insertCount: 1 })
+      history.record(
+        { file: 'sysconfig.toml', op: '新增', where: `${label}.${key}`, from: '（原本没有这一项）', to: text.trim() },
+        { start: insertAt, deleteCount: 0, insertCount: 1 }
+      )
       return true
     }
     const kv = splitKeyValue(work[li])
@@ -303,11 +362,21 @@ export function parseTomlDoc(text) {
     kind: 'toml',
     original,
 
-    text() { return work.join(eol) },
-    dirty() { return work.join(eol) !== originalLines.join(eol) },
-    reset() { history.reset() },
-    changes() { return history.changes() },
-    revertChange(index) { return history.revertChange(index) },
+    text() {
+      return work.join(eol)
+    },
+    dirty() {
+      return work.join(eol) !== originalLines.join(eol)
+    },
+    reset() {
+      history.reset()
+    },
+    changes() {
+      return history.changes()
+    },
+    revertChange(index) {
+      return history.revertChange(index)
+    },
 
     /** 某一段里出现过的所有键（给 UI 做校验：只认识固件支持的键） */
     keys(path) {
@@ -370,13 +439,18 @@ export function parseTomlDoc(text) {
       if (comment) work.push(`# ${comment}`)
       work.push(`[[${path}]]`)
       work.push(...fieldLines)
-      history.record({
-        file: 'sysconfig.toml',
-        op: '新增段',
-        where: `[[${path}]]`,
-        from: '（原本没有）',
-        to: Object.entries(fields).map(([k, v]) => `${k}=${Array.isArray(v) ? `[${v.join(',')}]` : v}`).join(' '),
-      }, { start: patchStart, deleteCount: beforeLength - patchStart, insertCount: work.length - patchStart })
+      history.record(
+        {
+          file: 'sysconfig.toml',
+          op: '新增段',
+          where: `[[${path}]]`,
+          from: '（原本没有）',
+          to: Object.entries(fields)
+            .map(([k, v]) => `${k}=${Array.isArray(v) ? `[${v.join(',')}]` : v}`)
+            .join(' '),
+        },
+        { start: patchStart, deleteCount: beforeLength - patchStart, insertCount: work.length - patchStart }
+      )
       return true
     },
 
@@ -387,18 +461,23 @@ export function parseTomlDoc(text) {
       const b = blocks[arrayIndex]
       if (!b) throw new Error(`配置里没有第 ${arrayIndex + 1} 段 [${path}]`)
       const removed = work.splice(b.start, b.end - b.start)
-      history.record({
-        file: 'sysconfig.toml',
-        op: '删除段',
-        where: `[[${path}]]#${arrayIndex + 1}`,
-        from: removed.filter((l) => l.trim() !== '').join(' / '),
-        to: '（已删除）',
-      }, { start: b.start, deleteCount: b.end - b.start, insertCount: 0 })
+      history.record(
+        {
+          file: 'sysconfig.toml',
+          op: '删除段',
+          where: `[[${path}]]#${arrayIndex + 1}`,
+          from: removed.filter((l) => l.trim() !== '').join(' / '),
+          to: '（已删除）',
+        },
+        { start: b.start, deleteCount: b.end - b.start, insertCount: 0 }
+      )
       return true
     },
 
     /** 是否存在某段（UI 用它决定「本板型没有这个段落，只读展示」还是「可编辑」） */
-    has(path) { return index().some((b) => b.path === path) },
+    has(path) {
+      return index().some((b) => b.path === path)
+    },
   }
 }
 
@@ -422,7 +501,13 @@ export function parseParamXmlDoc(text) {
   const original = text
   const originalLines = original.split(/\r\n|\n/)
   let work = originalLines.slice()
-  const history = createReviewHistory(originalLines, () => work, (lines) => { work = lines })
+  const history = createReviewHistory(
+    originalLines,
+    () => work,
+    (lines) => {
+      work = lines
+    }
+  )
 
   function index() {
     const groups = []
@@ -438,7 +523,7 @@ export function parseParamXmlDoc(text) {
         p = null
         continue
       }
-      if (m = RE_XML_PARAM.exec(line)) {
+      if ((m = RE_XML_PARAM.exec(line))) {
         p = { group: g ? g.name : '', name: m[1], valueLine: -1, value: '' }
         params.push(p)
         if (g) g.params.push(p)
@@ -456,7 +541,9 @@ export function parseParamXmlDoc(text) {
     return { groups, params }
   }
 
-  function key(group, name) { return `${group}\u0000${name}` }
+  function key(group, name) {
+    return `${group}\u0000${name}`
+  }
 
   function find(group, name) {
     const { params } = index()
@@ -467,13 +554,25 @@ export function parseParamXmlDoc(text) {
     kind: 'xml',
     original,
 
-    text() { return work.join(eol) },
-    dirty() { return work.join(eol) !== originalLines.join(eol) },
-    reset() { history.reset() },
-    changes() { return history.changes() },
-    revertChange(index) { return history.revertChange(index) },
+    text() {
+      return work.join(eol)
+    },
+    dirty() {
+      return work.join(eol) !== originalLines.join(eol)
+    },
+    reset() {
+      history.reset()
+    },
+    changes() {
+      return history.changes()
+    },
+    revertChange(index) {
+      return history.revertChange(index)
+    },
 
-    groups() { return index().groups.map((g) => ({ name: g.name, count: g.params.length })) },
+    groups() {
+      return index().groups.map((g) => ({ name: g.name, count: g.params.length }))
+    },
 
     /** 扁平清单：{group,name,value,type}，UI 直接拿来渲染 */
     list() {
@@ -483,8 +582,8 @@ export function parseParamXmlDoc(text) {
           group: p.group,
           name: p.name,
           raw: p.value,
-          value: isFloat ? Number(p.value) : (/^-?\d+$/.test(p.value) ? Number(p.value) : p.value),
-          type: isFloat ? 'float' : (/^-?\d+$/.test(p.value) ? 'int' : 'string'),
+          value: isFloat ? Number(p.value) : /^-?\d+$/.test(p.value) ? Number(p.value) : p.value,
+          type: isFloat ? 'float' : /^-?\d+$/.test(p.value) ? 'int' : 'string',
         }
       })
     },
@@ -493,10 +592,16 @@ export function parseParamXmlDoc(text) {
       const p = find(group, name)
       if (!p) return null
       const isFloat = /[.eE]/.test(p.value)
-      return { raw: p.value, value: isFloat || /^-?\d+$/.test(p.value) ? Number(p.value) : p.value, type: isFloat ? 'float' : 'int' }
+      return {
+        raw: p.value,
+        value: isFloat || /^-?\d+$/.test(p.value) ? Number(p.value) : p.value,
+        type: isFloat ? 'float' : 'int',
+      }
     },
 
-    has(group, name) { return !!find(group, name) },
+    has(group, name) {
+      return !!find(group, name)
+    },
 
     /**
      * 改一个参数的值。isFloat 决定写出格式：固件用 %f 落盘浮点，
@@ -525,8 +630,8 @@ export function parseParamXmlDoc(text) {
       const last = g.params[g.params.length - 1]
       // 缩进照抄本组已有的 param 块；本组是空的就用 param_save 的默认 4/8 空格
       const pi = work.findIndex((l, i) => i >= g.start && i <= g.end && RE_XML_PARAM.test(l))
-      const paramIndent = pi >= 0 ? (/^(\s*)/.exec(work[pi])[1] || '    ') : '    '
-      const valueIndent = last ? (last.indent || `${paramIndent}    `) : `${paramIndent}    `
+      const paramIndent = pi >= 0 ? /^(\s*)/.exec(work[pi])[1] || '    ' : '    '
+      const valueIndent = last ? last.indent || `${paramIndent}    ` : `${paramIndent}    `
       // valueLine+1 是 </param>，+2 就是下一个 <param> 或本组的 </group>——两种情况都要插在那一行之前
       const insertAt = last ? last.valueLine + 2 : g.end
       const block = [
@@ -535,7 +640,16 @@ export function parseParamXmlDoc(text) {
         `${paramIndent}</param>`,
       ]
       work.splice(insertAt, 0, ...block)
-      history.record({ file: 'param.xml', op: '新增', where: `${group}.${name}`, from: '（原本没有这一项）', to: formatNumber(value, isFloat) }, { start: insertAt, deleteCount: 0, insertCount: block.length })
+      history.record(
+        {
+          file: 'param.xml',
+          op: '新增',
+          where: `${group}.${name}`,
+          from: '（原本没有这一项）',
+          to: formatNumber(value, isFloat),
+        },
+        { start: insertAt, deleteCount: 0, insertCount: block.length }
+      )
       return true
     },
   }

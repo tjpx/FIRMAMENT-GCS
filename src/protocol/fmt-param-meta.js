@@ -37,7 +37,7 @@ function bits(...list) {
 const EKF2_DECL_TYPE_BITS = bits(
   [1, 'MASK_USE_GEO_DECL', '用地磁库的 declination', 'GPS 定位可用后取地磁偏角；不勾选则始终用 ekf2_mag_decl 的固定值'],
   [2, 'MASK_SAVE_GEO_DECL', '把取到的偏角写回 ekf2_mag_decl', '勾选后会把地磁库返回的值设置到 ekf2_mag_decl 参数'],
-  [4, 'MASK_FUSE_DECL', '把偏角作为观测量融合', '勾选后始终把 declination 当观测量融合，抑制航向漂移'],
+  [4, 'MASK_FUSE_DECL', '把偏角作为观测量融合', '勾选后始终把 declination 当观测量融合，抑制航向漂移']
 )
 
 const EKF2_GPS_CHECK_BITS = bits(
@@ -49,7 +49,7 @@ const EKF2_GPS_CHECK_BITS = bits(
   [32, 'MASK_GPS_HDRIFT', '水平漂移检查', '水平速度漂移检查'],
   [64, 'MASK_GPS_VDRIFT', '垂直漂移检查', '垂直速度漂移检查'],
   [128, 'MASK_GPS_HSPD', '水平速度检查', '水平速度合理性检查'],
-  [256, 'MASK_GPS_VSPD', '垂直速度检查', '垂直速度合理性检查'],
+  [256, 'MASK_GPS_VSPD', '垂直速度检查', '垂直速度合理性检查']
 )
 
 const EKF2_AID_MASK_BITS = bits(
@@ -61,12 +61,12 @@ const EKF2_AID_MASK_BITS = bits(
   [32, 'MASK_USE_DRAG', '使用阻力模型估风', '用多旋翼阻力模型估计风'],
   [64, 'MASK_ROTATE_EV', '旋转视觉观测量', '视觉观测不在 NED 系时需旋转'],
   [128, 'MASK_USE_GPSYAW', '使用 GPS 航向', '有 GPS yaw 数据时使用'],
-  [256, 'MASK_USE_EVVEL', '使用视觉速度', '用外部视觉速度数据'],
+  [256, 'MASK_USE_EVVEL', '使用视觉速度', '用外部视觉速度数据']
 )
 
 const EKF2_TERR_MASK_BITS = bits(
   [1, 'TERRAIN_FUSE_RANGEFINDER', '用地形测距', '地形估计使用测距仪'],
-  [2, 'TERRAIN_FUSE_OPTICALFLOW', '用地形光流', '地形估计使用光流'],
+  [2, 'TERRAIN_FUSE_OPTICALFLOW', '用地形光流', '地形估计使用光流']
 )
 
 /* ---------------- 参数名 → 元数据 ---------------- */
@@ -96,10 +96,7 @@ const PARAM_TABLE = {
   },
   'SYSTEM/LOOP_MISSION': {
     kind: 'enum',
-    options: [
-      intOpt(0, '0', '关闭', '任务做完就结束'),
-      intOpt(1, '1', '开启', '任务完成后从第一条数据重新执行'),
-    ],
+    options: [intOpt(0, '0', '关闭', '任务做完就结束'), intOpt(1, '1', '开启', '任务完成后从第一条数据重新执行')],
     hint: 'UINT8，固件按真值使用（mission_data.c:411 loop_mission = PARAM_GET_UINT8(...)）；含义见 sys_param.c:33-34 注释「Endless mission mode」。非 0 都会被当成开启。',
   },
   'SYSTEM/OBC_HEARTBEAT': {
@@ -116,14 +113,31 @@ const PARAM_TABLE = {
   'CONTROL/AIRFRAME': {
     kind: 'enum',
     dictKey: 'airframes',
-    hint: '布局号在编译期选定（target/*/SConstruct:50 --airframe），运行期改这个参数不会重新映射电机输出；'
-      + '控制律的合法集合见各 Controller_types.h 的变体检查：多旋翼/ADRC 只允许 1~8，VTOL 与艇载只允许 1~2。'
-      + '固件里没有布局编号对应的名称表，界面只显示编号，不编名字。',
+    hint:
+      '布局号在编译期选定（target/*/SConstruct:50 --airframe），运行期改这个参数不会重新映射电机输出；' +
+      '控制律的合法集合见各 Controller_types.h 的变体检查：多旋翼/ADRC 只允许 1~8，VTOL 与艇载只允许 1~2。' +
+      '固件里没有布局编号对应的名称表，界面只显示编号，不编名字。',
   },
-  'INS/ekf2_decl_type': { kind: 'bits', options: EKF2_DECL_TYPE_BITS, hint: '位定义见 ins_interface.c:173-176（同 ecl/EKF/common.h:173-175）。默认 7 = 三位全开。' },
-  'INS/ekf2_gps_check': { kind: 'bits', options: EKF2_GPS_CHECK_BITS, hint: '起飞前 GPS 质量检查的位掩码，定义见 ins_interface.c:47-55。默认 20 = 速度精度|水平精度|卫星数。' },
-  'INS/ekf2_aid_mask': { kind: 'bits', options: EKF2_AID_MASK_BITS, hint: '融合源选择掩码，定义见 ins_interface.c:58-66。默认 1 = 只用 GPS。' },
-  'INS/ekf2_terr_mask': { kind: 'bits', options: EKF2_TERR_MASK_BITS, hint: '地形估计用的源，定义见 ins_interface.c:74-75。默认 3 = 测距+光流。' },
+  'INS/ekf2_decl_type': {
+    kind: 'bits',
+    options: EKF2_DECL_TYPE_BITS,
+    hint: '位定义见 ins_interface.c:173-176（同 ecl/EKF/common.h:173-175）。默认 7 = 三位全开。',
+  },
+  'INS/ekf2_gps_check': {
+    kind: 'bits',
+    options: EKF2_GPS_CHECK_BITS,
+    hint: '起飞前 GPS 质量检查的位掩码，定义见 ins_interface.c:47-55。默认 20 = 速度精度|水平精度|卫星数。',
+  },
+  'INS/ekf2_aid_mask': {
+    kind: 'bits',
+    options: EKF2_AID_MASK_BITS,
+    hint: '融合源选择掩码，定义见 ins_interface.c:58-66。默认 1 = 只用 GPS。',
+  },
+  'INS/ekf2_terr_mask': {
+    kind: 'bits',
+    options: EKF2_TERR_MASK_BITS,
+    hint: '地形估计用的源，定义见 ins_interface.c:74-75。默认 3 = 测距+光流。',
+  },
   'INS/ekf2_mag_type': {
     kind: 'enum',
     options: [
@@ -158,16 +172,21 @@ const PARAM_TABLE = {
     ],
     hint: '视觉观测噪声取自里程计协方差矩阵的哪一格，数值见 ins_interface.c:78-83（X/VX 同为 0、Y/VY 同为 6……所以只列 6 个不同数字）。',
   },
-  'INS/ekf2_rng_aid': { kind: 'enum', options: SWITCH_ZERO_ONE, hint: 'INT32，是否允许主高度源不是测距仪时也用测距（ins_interface.c:154）。' },
+  'INS/ekf2_rng_aid': {
+    kind: 'enum',
+    options: SWITCH_ZERO_ONE,
+    hint: 'INT32，是否允许主高度源不是测距仪时也用测距（ins_interface.c:154）。',
+  },
   'INS/ekf2_fuse_beta': {
     kind: 'enum',
-    options: [
-      intOpt(0, '0', '关闭', '固件注释原文 0 disables'),
-      intOpt(1, '1', '开启', '固件注释原文 1 enables'),
-    ],
+    options: [intOpt(0, '0', '关闭', '固件注释原文 0 disables'), intOpt(1, '1', '开启', '固件注释原文 1 enables')],
     hint: '合成侧滑角融合。ins_interface.c:168 注释「0 disables, 1 enables」；INS.c:87 实际只在固定翼且值 ==1 时打开。',
   },
-  'INS/ekf2_synthetic_mag_z': { kind: 'enum', options: SWITCH_ZERO_ONE, hint: 'INT32，是否用三轴磁场推算合成的 Z 轴分量（ins_interface.c:175 注释）。' },
+  'INS/ekf2_synthetic_mag_z': {
+    kind: 'enum',
+    options: SWITCH_ZERO_ONE,
+    hint: 'INT32，是否用三轴磁场推算合成的 Z 轴分量（ins_interface.c:175 注释）。',
+  },
 }
 
 /* RC1~RC16 的 REV / MAX / MIN / TRIM（rc_param.c 全是 PARAM_FLOAT，REV 只能是 ±1） */

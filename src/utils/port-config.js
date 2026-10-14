@@ -109,31 +109,84 @@ export const PORT_SECTIONS = [
     key: 'console-devices',
     path: 'console.devices',
     title: '控制台设备 [console.devices]',
-    note: '飞控的调试/控制台走哪个口。设备名必须和板级 BSP 注册的名字一致（serial0 这种写法），'
-      + '写错飞控不会报错、只会安静地没数据，所以改完务必重新读一遍确认。'
-      + '这一节最多 5 行（console_config.c:26 CONSOLE_MAX_DEVICE_NUM），type 写 serial/mavlink 之外的值整行被丢（:221）。',
+    note:
+      '飞控的调试/控制台走哪个口。设备名必须和板级 BSP 注册的名字一致（serial0 这种写法），' +
+      '写错飞控不会报错、只会安静地没数据，所以改完务必重新读一遍确认。' +
+      '这一节最多 5 行（console_config.c:26 CONSOLE_MAX_DEVICE_NUM），type 写 serial/mavlink 之外的值整行被丢（:221）。',
     addable: true,
     defaults: { type: 'serial', name: '', baudrate: 57600 },
     fields: [
-      { key: 'type', label: '类型', kind: KIND.ENUM, options: CONSOLE_TYPES, allowUnknown: true, note: '固件 console 只有 serial 与 mavlink 两个分支（console_config.c:194/208），写别的整行解析失败' },
-      { key: 'name', label: '设备名', kind: KIND.TEXT, required: true, placeholder: 'serial0，以 BSP 注册名为准', note: '必填，缺了或设备找不到整行报错（console_config.c:230）' },
-      { key: 'baudrate', label: '波特率', kind: KIND.NUMBER, int: true, min: 1, max: 2000000, showIf: (r) => r.type === 'serial', note: '只有 serial 才解析这一项（console_config.c:244），默认 57600（:196）' },
-      { key: 'auto-switch', label: '自动探测', kind: KIND.BOOL, note: 'serial 与 mavlink 都有这一项（console_config.c:252/277）；开启后靠设备状态回调切换活动口' },
+      {
+        key: 'type',
+        label: '类型',
+        kind: KIND.ENUM,
+        options: CONSOLE_TYPES,
+        allowUnknown: true,
+        note: '固件 console 只有 serial 与 mavlink 两个分支（console_config.c:194/208），写别的整行解析失败',
+      },
+      {
+        key: 'name',
+        label: '设备名',
+        kind: KIND.TEXT,
+        required: true,
+        placeholder: 'serial0，以 BSP 注册名为准',
+        note: '必填，缺了或设备找不到整行报错（console_config.c:230）',
+      },
+      {
+        key: 'baudrate',
+        label: '波特率',
+        kind: KIND.NUMBER,
+        int: true,
+        min: 1,
+        max: 2000000,
+        showIf: (r) => r.type === 'serial',
+        note: '只有 serial 才解析这一项（console_config.c:244），默认 57600（:196）',
+      },
+      {
+        key: 'auto-switch',
+        label: '自动探测',
+        kind: KIND.BOOL,
+        note: 'serial 与 mavlink 都有这一项（console_config.c:252/277）；开启后靠设备状态回调切换活动口',
+      },
     ],
   },
   {
     key: 'mavproxy-devices',
     path: 'mavproxy.devices',
     title: 'MAVLink 转发通道 [mavproxy.devices]',
-    note: '地面站实际用的通信链路通常就是这里的一行。一行是一个转发实例，chan 是转发通道号，'
-      + '同一个 chan 下最多 5 行（mavproxy_config.c:27 MAVPROXY_MAX_DEVICE_NUM），chan 本身最多 5 个（mavproxy_dev.h:26 MAXPROXY_MAX_CHAN）。',
+    note:
+      '地面站实际用的通信链路通常就是这里的一行。一行是一个转发实例，chan 是转发通道号，' +
+      '同一个 chan 下最多 5 行（mavproxy_config.c:27 MAVPROXY_MAX_DEVICE_NUM），chan 本身最多 5 个（mavproxy_dev.h:26 MAXPROXY_MAX_CHAN）。',
     addable: true,
     defaults: { chan: 0, type: 'serial', name: '', baudrate: 57600 },
     fields: [
-      { key: 'chan', label: '实例号 chan', kind: KIND.NUMBER, int: true, min: 0, max: 4, note: '0~4：chan >= MAXPROXY_MAX_CHAN 会被判 invalid channel（mavproxy_config.c:71）' },
-      { key: 'type', label: '类型', kind: KIND.ENUM, options: MAVPROXY_TYPES, allowUnknown: true, note: 'serial / usb / eth 三个分支（mavproxy_config.c:94/113/123），其余报 unknown device type（:126）' },
+      {
+        key: 'chan',
+        label: '实例号 chan',
+        kind: KIND.NUMBER,
+        int: true,
+        min: 0,
+        max: 4,
+        note: '0~4：chan >= MAXPROXY_MAX_CHAN 会被判 invalid channel（mavproxy_config.c:71）',
+      },
+      {
+        key: 'type',
+        label: '类型',
+        kind: KIND.ENUM,
+        options: MAVPROXY_TYPES,
+        allowUnknown: true,
+        note: 'serial / usb / eth 三个分支（mavproxy_config.c:94/113/123），其余报 unknown device type（:126）',
+      },
       { key: 'name', label: '设备名', kind: KIND.TEXT, required: true, placeholder: '以 BSP 注册名为准' },
-      { key: 'baudrate', label: '波特率', kind: KIND.NUMBER, int: true, min: 1, max: 2000000, showIf: (r) => r.type === 'serial' },
+      {
+        key: 'baudrate',
+        label: '波特率',
+        kind: KIND.NUMBER,
+        int: true,
+        min: 1,
+        max: 2000000,
+        showIf: (r) => r.type === 'serial',
+      },
       { key: 'auto-switch', label: '自动探测', kind: KIND.BOOL },
     ],
   },
@@ -141,15 +194,32 @@ export const PORT_SECTIONS = [
     key: 'mavproxy-rtcm',
     path: 'mavproxy.rtcm_devices',
     title: 'RTCM 差分段 [mavproxy.rtcm_devices]',
-    note: '给 GNSS 灌差分数据的串口。这一节 type 只认 serial，写别的整行报错（mavproxy_config.c:173/186）；'
-      + '最多 5 行（:166 用同一个 MAVPROXY_MAX_DEVICE_NUM 判）。波特率本节的默认值是 0，'
-      + '固件注释写明 "0 means don\'t change baudrate"（:175），样例里没写这一项，本页也不替它凭空加一行。',
+    note:
+      '给 GNSS 灌差分数据的串口。这一节 type 只认 serial，写别的整行报错（mavproxy_config.c:173/186）；' +
+      '最多 5 行（:166 用同一个 MAVPROXY_MAX_DEVICE_NUM 判）。波特率本节的默认值是 0，' +
+      '固件注释写明 "0 means don\'t change baudrate"（:175），样例里没写这一项，本页也不替它凭空加一行。',
     addable: true,
     defaults: { type: 'serial', name: '' },
     fields: [
-      { key: 'type', label: '类型', kind: KIND.ENUM, options: RTCM_TYPES, allowUnknown: true, note: '固件只比较了 serial 这一个字符串（mavproxy_config.c:173）' },
+      {
+        key: 'type',
+        label: '类型',
+        kind: KIND.ENUM,
+        options: RTCM_TYPES,
+        allowUnknown: true,
+        note: '固件只比较了 serial 这一个字符串（mavproxy_config.c:173）',
+      },
       { key: 'name', label: '设备名', kind: KIND.TEXT, required: true, placeholder: '以 BSP 注册名为准' },
-      { key: 'baudrate', label: '波特率', kind: KIND.NUMBER, int: true, min: 0, max: 2000000, showIf: (r) => r.type === 'serial', note: '只有 serial 才解析这一项（mavproxy_config.c:209）；0 = 不改波特率（:175 注释 don\'t change baudrate），跟 GNSS 那节的 0 = 自动探测不是一回事' },
+      {
+        key: 'baudrate',
+        label: '波特率',
+        kind: KIND.NUMBER,
+        int: true,
+        min: 0,
+        max: 2000000,
+        showIf: (r) => r.type === 'serial',
+        note: "只有 serial 才解析这一项（mavproxy_config.c:209）；0 = 不改波特率（:175 注释 don't change baudrate），跟 GNSS 那节的 0 = 自动探测不是一回事",
+      },
     ],
   },
   {
@@ -162,7 +232,15 @@ export const PORT_SECTIONS = [
     fields: [
       { key: 'name', label: '设备名', kind: KIND.TEXT, required: true, placeholder: 'eth_dev0' },
       { key: 'local_addr', label: '本地地址', kind: KIND.TEXT, ip: true },
-      { key: 'local_port', label: '本地端口', kind: KIND.NUMBER, int: true, min: 0, max: 65535, note: '0 = 由飞控自选' },
+      {
+        key: 'local_port',
+        label: '本地端口',
+        kind: KIND.NUMBER,
+        int: true,
+        min: 0,
+        max: 65535,
+        note: '0 = 由飞控自选',
+      },
       { key: 'remote_addr', label: '远端地址', kind: KIND.TEXT, ip: true },
       { key: 'remote_port', label: '远端端口', kind: KIND.NUMBER, int: true, min: 1, max: 65535 },
     ],
@@ -171,64 +249,151 @@ export const PORT_SECTIONS = [
     key: 'gnss-devices',
     path: 'gnss.devices',
     title: 'GNSS 接收机 [gnss.devices]',
-    note: 'protocol 只有 ublox / nmea 两种（sensor_gps.c:108/110），其余报 "unknown gnss protocol" 并且整个 GNSS 不初始化（:113）。'
-      + 'type 必填且只认 serial，缺了或写错整行报错（gnss_config.c:68-94）。baudrate = 0 是"自动探测"'
-      + '（gnss_config.c:71 注释 auto detect），所以这里允许 0。飞控目前只支持 1 台接收机（gnss_config.c:26 GNSS_MAX_DEVICE_NUM = 1），'
-      + '多写的行会被解析器丢弃。',
+    note:
+      'protocol 只有 ublox / nmea 两种（sensor_gps.c:108/110），其余报 "unknown gnss protocol" 并且整个 GNSS 不初始化（:113）。' +
+      'type 必填且只认 serial，缺了或写错整行报错（gnss_config.c:68-94）。baudrate = 0 是"自动探测"' +
+      '（gnss_config.c:71 注释 auto detect），所以这里允许 0。飞控目前只支持 1 台接收机（gnss_config.c:26 GNSS_MAX_DEVICE_NUM = 1），' +
+      '多写的行会被解析器丢弃。',
     addable: true,
     defaults: { id: 0, protocol: 'ublox', type: 'serial', name: '', baudrate: 0 },
     fields: [
-      { key: 'id', label: '接收机序号', kind: KIND.NUMBER, int: true, min: 0, note: '必填（gnss_config.c:48）；样例用的是 0。固件只登记 1 台接收机（gnss_config.c:26），给多个 id 目前不会生效' },
-      { key: 'protocol', label: '协议', kind: KIND.ENUM, options: GNSS_PROTOCOLS, note: 'ublox → gps_ubx_init()，nmea → gps_nmea_init()（sensor_gps.c:108/110）；固件编译时还要打开 GNSS_UBX / GNSS_NMEA 宏' },
-      { key: 'type', label: '设备类型', kind: KIND.ENUM, options: GNSS_TYPES, note: '只有 serial 分支（gnss_config.c:69），且必填（缺了 :91-93 整行报错）' },
-      { key: 'name', label: '设备名', kind: KIND.TEXT, required: true, placeholder: '以 BSP 注册名为准', note: '必填（gnss_config.c:96）' },
-      { key: 'auto-config', label: '自动配置', kind: KIND.BOOL, note: '可选项（gnss_config.c:59）；开着我方会往接收机写配置指令，只连第三方接收机时慎开' },
-      { key: 'baudrate', label: '波特率', kind: KIND.NUMBER, int: true, min: 0, max: 2000000, note: '只在 type = serial 时解析（gnss_config.c:80）；0 = 自动探测（:71）' },
+      {
+        key: 'id',
+        label: '接收机序号',
+        kind: KIND.NUMBER,
+        int: true,
+        min: 0,
+        note: '必填（gnss_config.c:48）；样例用的是 0。固件只登记 1 台接收机（gnss_config.c:26），给多个 id 目前不会生效',
+      },
+      {
+        key: 'protocol',
+        label: '协议',
+        kind: KIND.ENUM,
+        options: GNSS_PROTOCOLS,
+        note: 'ublox → gps_ubx_init()，nmea → gps_nmea_init()（sensor_gps.c:108/110）；固件编译时还要打开 GNSS_UBX / GNSS_NMEA 宏',
+      },
+      {
+        key: 'type',
+        label: '设备类型',
+        kind: KIND.ENUM,
+        options: GNSS_TYPES,
+        note: '只有 serial 分支（gnss_config.c:69），且必填（缺了 :91-93 整行报错）',
+      },
+      {
+        key: 'name',
+        label: '设备名',
+        kind: KIND.TEXT,
+        required: true,
+        placeholder: '以 BSP 注册名为准',
+        note: '必填（gnss_config.c:96）',
+      },
+      {
+        key: 'auto-config',
+        label: '自动配置',
+        kind: KIND.BOOL,
+        note: '可选项（gnss_config.c:59）；开着我方会往接收机写配置指令，只连第三方接收机时慎开',
+      },
+      {
+        key: 'baudrate',
+        label: '波特率',
+        kind: KIND.NUMBER,
+        int: true,
+        min: 0,
+        max: 2000000,
+        note: '只在 type = serial 时解析（gnss_config.c:80）；0 = 自动探测（:71）',
+      },
     ],
   },
   {
     key: 'actuator-devices',
     path: 'actuator.devices',
     title: '执行器输出 [actuator.devices]',
-    note: '这一节最多 5 行（actuator_config.c:27 ACTUATOR_MAX_DEVICE_NUM）。协议只有 pwm 与 dshot 两个分支'
-      + '（:87 读取、:142 其余报 unknown device protocol）：pwm 用 freq（:160）与 init-val（:168），dshot 用 speed（:230）与 telem-req（:238）。'
-      + '这一节改错会直接动到输出，改完先在台架确认再上桨。',
+    note:
+      '这一节最多 5 行（actuator_config.c:27 ACTUATOR_MAX_DEVICE_NUM）。协议只有 pwm 与 dshot 两个分支' +
+      '（:87 读取、:142 其余报 unknown device protocol）：pwm 用 freq（:160）与 init-val（:168），dshot 用 speed（:230）与 telem-req（:238）。' +
+      '这一节改错会直接动到输出，改完先在台架确认再上桨。',
     addable: true,
     defaults: { protocol: 'pwm', name: 'main_out', freq: 400 },
     fields: [
-      { key: 'protocol', label: '输出协议', kind: KIND.ENUM, options: ACTUATOR_PROTOCOLS, allowUnknown: true, note: 'pwm → freq/init-val，dshot → speed/telem-req（actuator_config.c:160/168/230/238）' },
-      { key: 'name', label: '输出组', kind: KIND.ENUM, options: ['main_out', 'aux_out'], allowUnknown: true, note: '这一项要与 [actuator.devices] 里注册的设备名对上（actuator_config.c:81）；候选来自样例，不是固件常量' },
-      { key: 'freq', label: 'PWM 频率', kind: KIND.NUMBER, int: true, unit: 'Hz', showIf: (r) => r.protocol === 'pwm', note: '固件按任意整数读取（actuator_config.c:160），没有上下限校验；样例是 main_out 400、aux_out 50' },
-      { key: 'speed', label: 'DShot 速率', kind: KIND.NUMBER, values: DSHOT_SPEEDS, allowUnknown: true, unit: 'Mbps', showIf: (r) => r.protocol === 'dshot', note: '150/300/600 只来自配置注释（sysconfig.toml:68 "dshot speed: 150, 300, 600"）；解析器收任意整数（actuator_config.c:230）' },
-      { key: 'telem-req', label: '要遥测回传', kind: KIND.BOOL, showIf: (r) => r.protocol === 'dshot', note: 'dshot 分支才解析这一项（actuator_config.c:238）' },
+      {
+        key: 'protocol',
+        label: '输出协议',
+        kind: KIND.ENUM,
+        options: ACTUATOR_PROTOCOLS,
+        allowUnknown: true,
+        note: 'pwm → freq/init-val，dshot → speed/telem-req（actuator_config.c:160/168/230/238）',
+      },
+      {
+        key: 'name',
+        label: '输出组',
+        kind: KIND.ENUM,
+        options: ['main_out', 'aux_out'],
+        allowUnknown: true,
+        note: '这一项要与 [actuator.devices] 里注册的设备名对上（actuator_config.c:81）；候选来自样例，不是固件常量',
+      },
+      {
+        key: 'freq',
+        label: 'PWM 频率',
+        kind: KIND.NUMBER,
+        int: true,
+        unit: 'Hz',
+        showIf: (r) => r.protocol === 'pwm',
+        note: '固件按任意整数读取（actuator_config.c:160），没有上下限校验；样例是 main_out 400、aux_out 50',
+      },
+      {
+        key: 'speed',
+        label: 'DShot 速率',
+        kind: KIND.NUMBER,
+        values: DSHOT_SPEEDS,
+        allowUnknown: true,
+        unit: 'Mbps',
+        showIf: (r) => r.protocol === 'dshot',
+        note: '150/300/600 只来自配置注释（sysconfig.toml:68 "dshot speed: 150, 300, 600"）；解析器收任意整数（actuator_config.c:230）',
+      },
+      {
+        key: 'telem-req',
+        label: '要遥测回传',
+        kind: KIND.BOOL,
+        showIf: (r) => r.protocol === 'dshot',
+        note: 'dshot 分支才解析这一项（actuator_config.c:238）',
+      },
     ],
   },
   {
     key: 'actuator-mappings',
     path: 'actuator.mappings',
     title: '通道映射 [actuator.mappings]',
-    note: '这一节最多 10 行（actuator_config.c:28 ACTUATOR_MAX_MAPPING_NUM）。chan-map 必须是两个数组、'
-      + '而且两个数组长度相等（actuator_config.c:309/326，不满足直接 FMT_ERROR）。'
-      + '这一项决定"哪个控制量打到哪个物理输出"，写反会炸机——先在台架、不上桨用小幅度验证。',
+    note:
+      '这一节最多 10 行（actuator_config.c:28 ACTUATOR_MAX_MAPPING_NUM）。chan-map 必须是两个数组、' +
+      '而且两个数组长度相等（actuator_config.c:309/326，不满足直接 FMT_ERROR）。' +
+      '这一项决定"哪个控制量打到哪个物理输出"，写反会炸机——先在台架、不上桨用小幅度验证。',
     addable: true,
     defaults: { from: 'control_out', to: 'main_out', 'chan-map': '[[1,2,3,4],[1,2,3,4]]' },
     fields: [
-      { key: 'from', label: '来源', kind: KIND.ENUM, options: ACTUATOR_FROMS, allowUnknown: true, note: '固件比较过 control_out / rc_channels / mav_actuator_control 三个字符串（actuator_cmd.c:198/200/202），其余归为 UNKNOWN' },
-      { key: 'to', label: '去向', kind: KIND.ENUM, options: ['main_out', 'aux_out'], allowUnknown: true, note: '必填（actuator_config.c:298），取值是 [actuator.devices] 里注册的设备名' },
+      {
+        key: 'from',
+        label: '来源',
+        kind: KIND.ENUM,
+        options: ACTUATOR_FROMS,
+        allowUnknown: true,
+        note: '固件比较过 control_out / rc_channels / mav_actuator_control 三个字符串（actuator_cmd.c:198/200/202），其余归为 UNKNOWN',
+      },
+      {
+        key: 'to',
+        label: '去向',
+        kind: KIND.ENUM,
+        options: ['main_out', 'aux_out'],
+        allowUnknown: true,
+        note: '必填（actuator_config.c:298），取值是 [actuator.devices] 里注册的设备名',
+      },
       { key: 'chan-map', label: '通道映射', kind: KIND.ARRAY, placeholder: '[[1,2,3,4],[1,2,3,4]]' },
     ],
   },
 ]
 
 /** 按 TOML 路径找节定义 */
-export function sectionByPath(path) {
+function sectionByPath(path) {
   return PORT_SECTIONS.find((s) => s.path === path) || null
-}
-
-/** 某节某个字段的定义 */
-export function fieldDef(path, key) {
-  const sec = sectionByPath(path)
-  return sec ? sec.fields.find((f) => f.key === key) || null : null
 }
 
 /**
@@ -292,7 +457,10 @@ export function validateField(def, raw) {
             warning: `${def.label}「${s}」不在固件分支里（候选：${known.join(' / ')}）；飞控多半会忽略这一行，界面保留原值不自动改`,
           }
         }
-        return { ok: false, message: `${def.label} 只能从这些值里选：${known.join(' / ')}（依据是固件解析器里比较过的字符串），现在是「${s}」` }
+        return {
+          ok: false,
+          message: `${def.label} 只能从这些值里选：${known.join(' / ')}（依据是固件解析器里比较过的字符串），现在是「${s}」`,
+        }
       }
       return { ok: true, value: s }
     }
@@ -302,12 +470,21 @@ export function validateField(def, raw) {
       if (def.int && !Number.isInteger(n)) return { ok: false, message: `${def.label} 要填整数，现在是 ${n}` }
       if (def.values && !optionValues(def).includes(n)) {
         if (def.allowUnknown) {
-          return { ok: true, value: n, warning: `${def.label} ${n} 不在候选（${optionValues(def).join(' / ')}）里；候选只是注释里给过的值，飞控按任意数处理` }
+          return {
+            ok: true,
+            value: n,
+            warning: `${def.label} ${n} 不在候选（${optionValues(def).join(' / ')}）里；候选只是注释里给过的值，飞控按任意数处理`,
+          }
         }
-        return { ok: false, message: `${def.label} 只能填 ${optionValues(def).join(' / ')}（依据见这一项的说明），现在是 ${n}` }
+        return {
+          ok: false,
+          message: `${def.label} 只能填 ${optionValues(def).join(' / ')}（依据见这一项的说明），现在是 ${n}`,
+        }
       }
-      if (def.min !== undefined && n < def.min) return { ok: false, message: `${def.label} 不能小于 ${def.min}${def.unit ? ' ' + def.unit : ''}，现在是 ${n}` }
-      if (def.max !== undefined && n > def.max) return { ok: false, message: `${def.label} 不能大于 ${def.max}${def.unit ? ' ' + def.unit : ''}，现在是 ${n}` }
+      if (def.min !== undefined && n < def.min)
+        return { ok: false, message: `${def.label} 不能小于 ${def.min}${def.unit ? ' ' + def.unit : ''}，现在是 ${n}` }
+      if (def.max !== undefined && n > def.max)
+        return { ok: false, message: `${def.label} 不能大于 ${def.max}${def.unit ? ' ' + def.unit : ''}，现在是 ${n}` }
       return { ok: true, value: n }
     }
     case KIND.ARRAY: {
@@ -319,17 +496,21 @@ export function validateField(def, raw) {
           const parsed = parseTomlValue(text)
           value = parsed && typeof parsed === 'object' && 'value' in parsed ? parsed.value : parsed
         } catch {
-          return { ok: false, message: `${def.label} 解析不了「${text}」，按 TOML 数组写，例如 ${def.placeholder || '[1,2,3]'}` }
+          return {
+            ok: false,
+            message: `${def.label} 解析不了「${text}」，按 TOML 数组写，例如 ${def.placeholder || '[1,2,3]'}`,
+          }
         }
       }
-      const msg = def.key === 'chan-map' ? checkChanMap(value) : (Array.isArray(value) ? '' : `${def.label} 要写成数组`)
+      const msg = def.key === 'chan-map' ? checkChanMap(value) : Array.isArray(value) ? '' : `${def.label} 要写成数组`
       if (msg) return { ok: false, message: `${def.label}：${msg}` }
       return { ok: true, value }
     }
     case KIND.TEXT:
     default: {
       const s = String(text)
-      if (def.ip && !isIpv4(s)) return { ok: false, message: `${def.label} 要写成点分十进制 IPv4（例如 192.168.1.24），现在是「${s}」` }
+      if (def.ip && !isIpv4(s))
+        return { ok: false, message: `${def.label} 要写成点分十进制 IPv4（例如 192.168.1.24），现在是「${s}」` }
       return { ok: true, value: s }
     }
   }
@@ -369,7 +550,9 @@ export function enumOptions(def, current) {
   const normalized = objectMode
     ? list.map((item) => (item && typeof item === 'object' ? item : { value: item, label: String(item) }))
     : [...list]
-  const hasCurrent = normalized.some((item) => String(item && typeof item === 'object' ? item.value : item) === String(current))
+  const hasCurrent = normalized.some(
+    (item) => String(item && typeof item === 'object' ? item.value : item) === String(current)
+  )
   if (current === undefined || current === null || hasCurrent) return normalized
   return objectMode
     ? [{ value: current, label: `当前值（${current}）`, unknown: true }, ...normalized]

@@ -73,8 +73,7 @@ export function censusRates(prev, cur, windowMs) {
 
 /** 参数条目归一：字段名在解码层是 name，在事件里可能是 param_id；两者都认 */
 export function normalizeParamList(raw) {
-  const list = Array.isArray(raw) ? raw
-    : (raw && Array.isArray(raw.list) ? raw.list : [])
+  const list = Array.isArray(raw) ? raw : raw && Array.isArray(raw.list) ? raw.list : []
   return list
     .map((e) => {
       const src = e || {}
@@ -146,11 +145,14 @@ export function paramReadSummary(result, params) {
     total: numOrNull(result && result.total),
     reason,
     ms: numOrNull(result && result.ms),
-    note: reason === 'no-response'
-      ? '一帧 PARAM_VALUE 都没收到：判定这台飞控未实现该协议（不是"参数为空"）'
-      : (reason === 'complete'
-        ? '读完了（param_index+1 >= param_count）'
-        : (reason ? `未确认读完（${reason}），下面的数字是下界` : '未采集')),
+    note:
+      reason === 'no-response'
+        ? '一帧 PARAM_VALUE 都没收到：判定这台飞控未实现该协议（不是"参数为空"）'
+        : reason === 'complete'
+          ? '读完了（param_index+1 >= param_count）'
+          : reason
+            ? `未确认读完（${reason}），下面的数字是下界`
+            : '未采集',
   }
 }
 
@@ -178,16 +180,18 @@ export function fileSummary(files) {
  * 所以这里不假设，能认的形状都认，认不出就把键名报出来，别装作读懂了。
  */
 export function sysListingSummary(result) {
-  const shape = Array.isArray(result) ? 'array'
-    : (result && typeof result === 'object' ? `object{${Object.keys(result).join(',')}}` : typeof result)
-  const entries = Array.isArray(result) ? result
-    : (result && (result.entries || result.files || result.list)) || []
+  const shape = Array.isArray(result)
+    ? 'array'
+    : result && typeof result === 'object'
+      ? `object{${Object.keys(result).join(',')}}`
+      : typeof result
+  const entries = Array.isArray(result) ? result : (result && (result.entries || result.files || result.list)) || []
   const list = Array.isArray(entries) ? entries : []
   return {
     shape,
     count: list.length,
     entries: list.map((e) => ({
-      name: typeof e === 'string' ? e : (e && (e.name ?? e.filename) != null ? String(e.name ?? e.filename) : null),
+      name: typeof e === 'string' ? e : e && (e.name ?? e.filename) != null ? String(e.name ?? e.filename) : null,
       size: numOrNull(e && e.size),
       directory: e ? (e.isDirectory ?? e.is_dir ?? e.dir ?? null) : null,
     })),
@@ -248,16 +252,19 @@ export function telemetryFindings(rows) {
   const byName = new Map((rows || []).map((r) => [r.name, r]))
   return CENSUS_WATCHLIST.map((name) => {
     const r = byName.get(name)
-    const inWindow = r ? numOrNull(r.rxInWindow) ?? 0 : 0
+    const inWindow = r ? (numOrNull(r.rxInWindow) ?? 0) : 0
     return {
       name,
       msgid: r ? numOrNull(r.msgid) : null,
       rxInWindow: inWindow,
       rateHz: r && inWindow > 0 ? numOrNull(r.rateHz) : null,
       present: inWindow > 0,
-      note: inWindow > 0
-        ? '窗口内收到'
-        : (r ? '窗口内没有新帧（累计收到过 ' + (numOrNull(r.rxTotal) ?? 0) + ' 条）' : '从未收到该消息：飞控不发送，或需要接上对应硬件'),
+      note:
+        inWindow > 0
+          ? '窗口内收到'
+          : r
+            ? '窗口内没有新帧（累计收到过 ' + (numOrNull(r.rxTotal) ?? 0) + ' 条）'
+            : '从未收到该消息：飞控不发送，或需要接上对应硬件',
     }
   })
 }
@@ -327,35 +334,53 @@ export function reportDigest(report) {
   const id = r.identity || {}
   const lines = []
   lines.push(`链路体检 ${r.generatedAt || '时间未知'}（schema ${r.schema}）`)
-  lines.push(`身份：sysid ${id.sysid ?? '?'} compid ${id.compid ?? '?'} 型号 ${id.type ?? '?'} autopilot ${id.autopilot ?? '?'}｜模式 ${id.modeName || id.modeCode || '未知'}｜解锁 ${id.armed ? '是' : '否'}`)
+  lines.push(
+    `身份：sysid ${id.sysid ?? '?'} compid ${id.compid ?? '?'} 型号 ${id.type ?? '?'} autopilot ${id.autopilot ?? '?'}｜模式 ${id.modeName || id.modeCode || '未知'}｜解锁 ${id.armed ? '是' : '否'}`
+  )
   const link = id.link || {}
-  lines.push(`链路：${link.frames ?? '?'} 帧 / ${link.rxMsgs ?? '?'} 条 / CRC 错 ${link.crcErrors ?? '?'} / 自愈 ${link.learnedCrcExtra ?? 0} 项`)
+  lines.push(
+    `链路：${link.frames ?? '?'} 帧 / ${link.rxMsgs ?? '?'} 条 / CRC 错 ${link.crcErrors ?? '?'} / 自愈 ${link.learnedCrcExtra ?? 0} 项`
+  )
   for (const f of r.files || []) {
-    lines.push(`文件 ${f.remote}：${f.present ? '存在' : '不存在'} ${f.size ?? '?'}B crc ${f.crc32 || '未知'}${f.error ? ' 错误：' + f.error : ''}`)
+    lines.push(
+      `文件 ${f.remote}：${f.present ? '存在' : '不存在'} ${f.size ?? '?'}B crc ${f.crc32 || '未知'}${f.error ? ' 错误：' + f.error : ''}`
+    )
   }
   if (r.sysListing) lines.push(`/sys 目录：${r.sysListing.count} 项（返回形状 ${r.sysListing.shape}）`)
   const pm = r.params
   if (pm) lines.push(`参数：读到 ${pm.got}/${pm.total ?? '?'} 原因 ${pm.reason}（${pm.ms ?? '?'}ms）— ${pm.note}`)
   if (r.paramShape) {
-    lines.push(`参数名形态：带下划线 ${r.paramShape.withUnderscore} / 不带 ${r.paramShape.withoutUnderscore}｜前缀种类 ${r.paramShape.prefixKinds}｜最长 ${r.paramShape.maxLength} 字节，逼近 16 上限 ${r.paramShape.nearParamIdLimit} 条`)
+    lines.push(
+      `参数名形态：带下划线 ${r.paramShape.withUnderscore} / 不带 ${r.paramShape.withoutUnderscore}｜前缀种类 ${r.paramShape.prefixKinds}｜最长 ${r.paramShape.maxLength} 字节，逼近 16 上限 ${r.paramShape.nearParamIdLimit} 条`
+    )
     lines.push(`前缀样例：${r.paramShape.topPrefixes.map((x) => `${x.prefix}(${x.count})`).join(' ') || '无'}`)
   }
   const au = r.paramAudit
   if (au) {
     const dist = (au.byType || []).map((b) => `${b.text || b.type}(${b.count})`).join(' ')
-    const dup = au.duplicatedFrames == null
-        ? ''
-        : `｜重名帧 ${au.duplicatedFrames}（${au.frames} 帧去重后剩 ${au.total} 名）`
-    lines.push(`参数类型分布：${dist || '无'}｜整型 ${au.intTyped} 条链路读不出可信值｜两种读法分歧 ${au.divergingCount} 条${dup}`)
+    const dup =
+      au.duplicatedFrames == null ? '' : `｜重名帧 ${au.duplicatedFrames}（${au.frames} 帧去重后剩 ${au.total} 名）`
+    lines.push(
+      `参数类型分布：${dist || '无'}｜整型 ${au.intTyped} 条链路读不出可信值｜两种读法分歧 ${au.divergingCount} 条${dup}`
+    )
     if ((au.diverging || []).length) {
-      lines.push(`分歧样例：${au.diverging.slice(0, 3).map((d) => `${d.name} float=${d.float} 整型=${d.typed}`).join('；')}`)
+      lines.push(
+        `分歧样例：${au.diverging
+          .slice(0, 3)
+          .map((d) => `${d.name} float=${d.float} 整型=${d.typed}`)
+          .join('；')}`
+      )
     }
   }
   const yes = (r.findings || []).filter((x) => x.present).map((x) => x.name)
   const no = (r.findings || []).filter((x) => !x.present).map((x) => x.name)
   lines.push(`窗口内在发：${yes.join(' ') || '无'}`)
   lines.push(`窗口内没收到：${no.join(' ') || '无'}`)
-  if (r.consoleProbe) lines.push(`控制台：${r.consoleProbe.responded ? `有回显 ${r.consoleProbe.bytes}B/${r.consoleProbe.lines} 行` : '无回显'}｜${r.consoleProbe.note}`)
-  if ((r.errors || []).length) lines.push(`错误 ${r.errors.length} 条：${r.errors.map((e) => `${e.step}=${e.error}`).join('；')}`)
+  if (r.consoleProbe)
+    lines.push(
+      `控制台：${r.consoleProbe.responded ? `有回显 ${r.consoleProbe.bytes}B/${r.consoleProbe.lines} 行` : '无回显'}｜${r.consoleProbe.note}`
+    )
+  if ((r.errors || []).length)
+    lines.push(`错误 ${r.errors.length} 条：${r.errors.map((e) => `${e.step}=${e.error}`).join('；')}`)
   return lines.join('\n')
 }

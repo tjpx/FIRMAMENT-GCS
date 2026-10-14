@@ -8,13 +8,7 @@
   我们暂时保留布局，但结论性的文案（成功/已保存）一律不许出现在未接通的通道上。
 -->
 <template>
-  <el-alert
-      type="warning"
-      show-icon
-      :closable="false"
-      class="prototype-notice"
-      :title="title"
-  >
+  <el-alert type="warning" show-icon :closable="false" class="prototype-notice" :title="title">
     <ul v-if="items.length" class="pn-list">
       <li v-for="(it, i) in items" :key="i">{{ it }}</li>
     </ul>

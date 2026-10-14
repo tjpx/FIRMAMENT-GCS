@@ -42,7 +42,12 @@ export const FMT_COMMAND_OPTIONS = [
   { value: 1005, name: 'Return', label: '返航', description: '返回 Home 点后降落' },
   { value: 1006, name: 'Pause', label: '暂停任务', description: '暂停当前任务' },
   { value: 1007, name: 'Continue', label: '继续任务', description: '继续执行任务' },
-  { value: 2000, name: 'SetHome', label: '设置 Home 点', description: '以 [x y z yaw] 四个参数设定 Home 点（gcs_cmd.c 会打印这四个值）' },
+  {
+    value: 2000,
+    name: 'SetHome',
+    label: '设置 Home 点',
+    description: '以 [x y z yaw] 四个参数设定 Home 点（gcs_cmd.c 会打印这四个值）',
+  },
 ]
 
 /**
@@ -137,14 +142,10 @@ export const MAVPROXY_DEVICE_TYPE_OPTIONS = [
 ]
 
 /** rtcm_devices 的 type：只有 serial 一个分支（mavproxy_config.c:172-189） */
-export const RTCM_DEVICE_TYPE_OPTIONS = [
-  { value: 'serial', label: '串口' },
-]
+export const RTCM_DEVICE_TYPE_OPTIONS = [{ value: 'serial', label: '串口' }]
 
 /** gnss.devices 的 type：只有 serial 一个分支，而且这一项必填（gnss_config.c:68-94） */
-export const GNSS_DEVICE_TYPE_OPTIONS = [
-  { value: 'serial', label: '串口' },
-]
+export const GNSS_DEVICE_TYPE_OPTIONS = [{ value: 'serial', label: '串口' }]
 
 /**
  * actuator.mappings 的 from（actuator_cmd.c:198-205）。
@@ -153,7 +154,11 @@ export const GNSS_DEVICE_TYPE_OPTIONS = [
 export const ACTUATOR_FROM_OPTIONS = [
   { value: 'control_out', label: '控制器输出', description: 'ACTUATOR_FROM_CONTROLLER：走控制律算出来的量' },
   { value: 'rc_channels', label: '遥控器通道直通', description: 'ACTUATOR_FROM_RC_CHANNEL：摇杆量直接打到输出' },
-  { value: 'mav_actuator_control', label: 'MAVLink 执行器控制', description: 'ACTUATOR_FROM_MAVLINK：来自 ACTUATOR_CONTROL 消息' },
+  {
+    value: 'mav_actuator_control',
+    label: 'MAVLink 执行器控制',
+    description: 'ACTUATOR_FROM_MAVLINK：来自 ACTUATOR_CONTROL 消息',
+  },
 ]
 
 /**
@@ -167,9 +172,7 @@ export const GNSS_PROTOCOL_OPTIONS = [
 ]
 
 /** pilot-cmd 的 device type：固件只支持 "rc"（pilot_cmd_config.c:427，其余 :443-444 报 FMT_EINVAL） */
-export const RC_DEVICE_TYPE_OPTIONS = [
-  { value: 'rc', label: '遥控器（rc）' },
-]
+export const RC_DEVICE_TYPE_OPTIONS = [{ value: 'rc', label: '遥控器（rc）' }]
 
 /** actuator.devices 的 protocol（actuator_config.c:87 读取，:142 其余报 unknown device protocol） */
 export const ACTUATOR_PROTOCOL_OPTIONS = [
@@ -200,6 +203,7 @@ export function optionLabel(option) {
 
 export function optionsWithCurrent(options, currentValue, label = '未知值') {
   const list = Array.isArray(options) ? options.slice() : []
-  if (currentValue === undefined || currentValue === null || list.some((item) => item.value === currentValue)) return list
+  if (currentValue === undefined || currentValue === null || list.some((item) => item.value === currentValue))
+    return list
   return [{ value: currentValue, label: `${label}（${currentValue}）`, unknown: true }, ...list]
 }

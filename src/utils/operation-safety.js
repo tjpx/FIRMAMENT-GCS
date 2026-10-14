@@ -4,12 +4,19 @@ export function motorSafetyAllowed({ canWrite, armed, propsRemoved, mountSecured
 }
 
 export function firmwarePreparationAllowed({ inspected, targetBlocked, targetConfirmed, backupConfirmed, typed } = {}) {
-  return inspected === true && targetBlocked !== true && targetConfirmed === true && backupConfirmed === true && typed === '刷写'
+  return (
+    inspected === true &&
+    targetBlocked !== true &&
+    targetConfirmed === true &&
+    backupConfirmed === true &&
+    typed === '刷写'
+  )
 }
 
 // 飞控路径按 POSIX 规整；拒绝不可解释的字符，避免 .. 或反斜杠绕过系统路径判断。
 export function normalizeRemotePath(path) {
-  if (typeof path !== 'string' || !path.startsWith('/') || /[\x00-\x1f\x7f\\]/.test(path)) throw new Error('无效飞控绝对路径')
+  if (typeof path !== 'string' || !path.startsWith('/') || /[\x00-\x1f\x7f\\]/.test(path))
+    throw new Error('无效飞控绝对路径')
   const parts = []
   for (const part of path.split('/')) {
     if (!part || part === '.') continue
@@ -27,12 +34,24 @@ export function ftpWritePolicy(path) {
 }
 
 export function ftpUploadVerified(result) {
-  return result?.verified === true && result.verifyMode === 'crc' &&
-    Number.isInteger(result.crc32) && result.crc32 >= 0 && result.crc32 <= 0xffffffff &&
-    Number.isInteger(result.remoteCrc32) && result.crc32 === result.remoteCrc32
+  return (
+    result?.verified === true &&
+    result.verifyMode === 'crc' &&
+    Number.isInteger(result.crc32) &&
+    result.crc32 >= 0 &&
+    result.crc32 <= 0xffffffff &&
+    Number.isInteger(result.remoteCrc32) &&
+    result.crc32 === result.remoteCrc32
+  )
 }
 
 export function motorResultState({ promptSeen, connected, reason } = {}) {
-  if (promptSeen === true && connected === true) return { active: false, uncertain: false, phase: 'stopped', reason: '已收到真实控制台提示符' }
-  return { active: false, uncertain: true, phase: 'uncertain', reason: reason || '未确认电机停止，请在现场检查并使用独立停机措施' }
+  if (promptSeen === true && connected === true)
+    return { active: false, uncertain: false, phase: 'stopped', reason: '已收到真实控制台提示符' }
+  return {
+    active: false,
+    uncertain: true,
+    phase: 'uncertain',
+    reason: reason || '未确认电机停止，请在现场检查并使用独立停机措施',
+  }
 }

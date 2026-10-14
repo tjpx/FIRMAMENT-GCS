@@ -2,14 +2,22 @@
   <div class="port">
     <TaskHeader title="端口配置" description="配置通信端口与设备。修改后，请通过右下角保存到飞控。">
       <template v-if="loaded">
-        <el-tag size="small" :type="dirtyCount ? 'warning' : 'info'" effect="plain">{{ dirtyCount ? `${dirtyCount} 处待保存` : '配置已读取' }}</el-tag>
+        <el-tag size="small" :type="dirtyCount ? 'warning' : 'info'" effect="plain">{{
+          dirtyCount ? `${dirtyCount} 处待保存` : '配置已读取'
+        }}</el-tag>
         <el-button size="small" plain :disabled="!!busy" @click="reload">重新读取</el-button>
       </template>
       <el-tag v-else size="small" type="info" effect="plain">{{ unloadedText }}</el-tag>
     </TaskHeader>
 
     <div v-if="!loaded" class="pp-blocked">
-      <EmptyStateAction title="配置尚未就绪" :reason="unloadedText" action-label="从飞控读取配置" :action-disabled="!connected || !!busy" @action="reload" />
+      <EmptyStateAction
+        title="配置尚未就绪"
+        :reason="unloadedText"
+        action-label="从飞控读取配置"
+        :action-disabled="!connected || !!busy"
+        @action="reload"
+      />
     </div>
 
     <template v-else>
@@ -30,12 +38,38 @@
 
         <div v-if="rowsOf(sec).length" class="port-row-grid">
           <el-card v-for="row in rowsOf(sec)" :key="row.index" shadow="never" class="port-row-card">
-            <div class="port-row-title"><strong>端口 {{ row.index + 1 }}</strong><el-button size="small" text type="danger" :disabled="uploading" @click="removeRow(sec, row)">删除</el-button></div>
+            <div class="port-row-title">
+              <strong>端口 {{ row.index + 1 }}</strong
+              ><el-button size="small" text type="danger" :disabled="uploading" @click="removeRow(sec, row)"
+                >删除</el-button
+              >
+            </div>
             <div v-for="def in sec.fields" :key="def.key" class="port-field">
-              <label>{{ def.label }}<span v-if="def.unit">（{{ def.unit }}）</span></label>
+              <label
+                >{{ def.label }}<span v-if="def.unit">（{{ def.unit }}）</span></label
+              >
               <div v-if="!fieldVisible(def, row)" class="pp-na">不适用</div>
-              <el-select v-else-if="def.kind === 'enum' || def.kind === 'bool' || def.values" size="small" :model-value="def.kind === 'bool' ? boolModel(row, def) : cellValue(row, def)" @update:model-value="(v) => commit(sec, row, def, v)"><el-option v-if="def.kind === 'bool'" label="未配置" value="" /><el-option v-if="def.kind === 'bool'" label="是" value="true" /><el-option v-if="def.kind === 'bool'" label="否" value="false" /><el-option v-for="o in cellOptions(def, row)" :key="String(o.value)" :label="portOptionLabel(o)" :value="String(o.value)" /></el-select>
-              <el-input v-else size="small" :model-value="cellText(row, def)" @update:model-value="(v) => setDraft(sec, row, def, v)" @change="(v) => commit(sec, row, def, v)" />
+              <el-select
+                v-else-if="def.kind === 'enum' || def.kind === 'bool' || def.values"
+                size="small"
+                :model-value="def.kind === 'bool' ? boolModel(row, def) : cellValue(row, def)"
+                @update:model-value="(v) => commit(sec, row, def, v)"
+                ><el-option v-if="def.kind === 'bool'" label="未配置" value="" /><el-option
+                  v-if="def.kind === 'bool'"
+                  label="是"
+                  value="true" /><el-option v-if="def.kind === 'bool'" label="否" value="false" /><el-option
+                  v-for="o in cellOptions(def, row)"
+                  :key="String(o.value)"
+                  :label="portOptionLabel(o)"
+                  :value="String(o.value)"
+              /></el-select>
+              <el-input
+                v-else
+                size="small"
+                :model-value="cellText(row, def)"
+                @update:model-value="(v) => setDraft(sec, row, def, v)"
+                @change="(v) => commit(sec, row, def, v)"
+              />
               <div v-if="cellError(sec, row, def)" class="pp-err">{{ cellError(sec, row, def) }}</div>
               <div v-else-if="cellWarning(sec, row, def)" class="pp-warn">{{ cellWarning(sec, row, def) }}</div>
               <div v-else-if="def.note" class="pp-hint">{{ def.note }}</div>
@@ -59,28 +93,53 @@
               <div v-if="!fieldVisible(def, row)" class="pp-na">不适用</div>
               <template v-else>
                 <!-- 枚举：候选 = 固件解析器比较过的值 ∪ 这一行原本写的值 -->
-                <el-select v-if="def.kind === 'enum'" size="small" :model-value="cellValue(row, def)"
-                  :placeholder="cellPlaceholder(row, def)" @update:model-value="(v) => commit(sec, row, def, v)">
-                  <el-option v-for="o in cellOptions(def, row)" :key="String(o.value)" :label="portOptionLabel(o)" :value="String(o.value)" />
+                <el-select
+                  v-if="def.kind === 'enum'"
+                  size="small"
+                  :model-value="cellValue(row, def)"
+                  :placeholder="cellPlaceholder(row, def)"
+                  @update:model-value="(v) => commit(sec, row, def, v)"
+                >
+                  <el-option
+                    v-for="o in cellOptions(def, row)"
+                    :key="String(o.value)"
+                    :label="portOptionLabel(o)"
+                    :value="String(o.value)"
+                  />
                 </el-select>
 
-                <el-select v-else-if="def.kind === 'bool'" size="small" :model-value="boolModel(row, def)"
-                  placeholder="未配置" @update:model-value="(v) => commit(sec, row, def, v)">
+                <el-select
+                  v-else-if="def.kind === 'bool'"
+                  size="small"
+                  :model-value="boolModel(row, def)"
+                  placeholder="未配置"
+                  @update:model-value="(v) => commit(sec, row, def, v)"
+                >
                   <el-option label="未配置" value="" />
                   <el-option label="是" value="true" />
                   <el-option label="否" value="false" />
                 </el-select>
 
-                <el-select v-else-if="def.values" size="small" :model-value="cellValue(row, def)"
-                  :placeholder="cellPlaceholder(row, def)" @update:model-value="(v) => commit(sec, row, def, v)">
+                <el-select
+                  v-else-if="def.values"
+                  size="small"
+                  :model-value="cellValue(row, def)"
+                  :placeholder="cellPlaceholder(row, def)"
+                  @update:model-value="(v) => commit(sec, row, def, v)"
+                >
                   <el-option v-for="o in def.values" :key="o" :label="String(o)" :value="String(o)" />
                 </el-select>
 
-                <el-input v-else size="small" :model-value="cellText(row, def)"
-                  :placeholder="cellPlaceholder(row, def)" clearable
+                <el-input
+                  v-else
+                  size="small"
+                  :model-value="cellText(row, def)"
+                  :placeholder="cellPlaceholder(row, def)"
+                  clearable
                   @update:model-value="(v) => setDraft(sec, row, def, v)"
                   @change="(v) => commit(sec, row, def, v)"
-                  @keyup.enter="(e) => commit(sec, row, def, e.target.value)" />
+                  @keyup.enter="(e) => commit(sec, row, def, e.target.value)"
+                />
                 <div v-if="cellError(sec, row, def)" class="pp-err">{{ cellError(sec, row, def) }}</div>
                 <div v-else-if="def.kind === 'array'" class="pp-hint">{{ def.placeholder }}</div>
               </template>
@@ -96,7 +155,14 @@
           </el-table-column>
         </el-table>
 
-        <EmptyStateAction v-if="!rowsOf(sec).length" title="没有设备行" :reason="`飞控的 ${sec.path} 里没有设备行`" action-label="新增一行" :action-disabled="!!busy" @action="addRow(sec)" />
+        <EmptyStateAction
+          v-if="!rowsOf(sec).length"
+          title="没有设备行"
+          :reason="`飞控的 ${sec.path} 里没有设备行`"
+          action-label="新增一行"
+          :action-disabled="!!busy"
+          @action="addRow(sec)"
+        />
       </el-card>
     </template>
   </div>
@@ -178,9 +244,12 @@ function dirtyOfSection(sec) {
 const drafts = reactive(Object.create(null))
 const errors = reactive(Object.create(null))
 const warnings = reactive(Object.create(null))
-watch(() => `${fc.restoreRevision}|${fc.lastPullAt}|${fc.files.sysconfig.crc32Hex}`, () => {
-  for (const state of [drafts, errors, warnings]) for (const key of Object.keys(state)) delete state[key]
-})
+watch(
+  () => `${fc.restoreRevision}|${fc.lastPullAt}|${fc.files.sysconfig.crc32Hex}`,
+  () => {
+    for (const state of [drafts, errors, warnings]) for (const key of Object.keys(state)) delete state[key]
+  }
+)
 const draftKey = (sec, row, def) => `${sec ? sec.key : row.sectionKey}|${row.index}|${def.key}`
 
 function rawOf(row, def) {
@@ -257,7 +326,8 @@ function commit(sec, row, def, raw) {
   if (check.value === '' || check.value === undefined) {
     delete drafts[k]
     delete warnings[k]
-    if (row.has(def.key)) errors[k] = `${def.label} 原本是 ${JSON.stringify(row.fields[def.key])}；本页不删已有键，清空等于不改`
+    if (row.has(def.key))
+      errors[k] = `${def.label} 原本是 ${JSON.stringify(row.fields[def.key])}；本页不删已有键，清空等于不改`
     return
   }
   try {
@@ -300,7 +370,8 @@ async function removeRow(sec, row) {
     await ElMessageBox.confirm(
       `确定删掉第 ${row.index + 1} 行（${brief}）？这一行代表飞控上的一个通信设备，删掉保存后该设备就没有配置了。`,
       `删除 ${sec.path} 的一行`,
-      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' })
+      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' }
+    )
   } catch {
     return
   }
@@ -318,8 +389,10 @@ async function reload() {
   if (dirtyCount.value) {
     try {
       await ElMessageBox.confirm(
-        `当前有 ${dirtyCount.value} 处没保存的改动，重新读取会用飞控上的内容覆盖它们。`, '放弃改动并重新读取？',
-        { type: 'warning', confirmButtonText: '放弃并重新读取', cancelButtonText: '取消' })
+        `当前有 ${dirtyCount.value} 处没保存的改动，重新读取会用飞控上的内容覆盖它们。`,
+        '放弃改动并重新读取？',
+        { type: 'warning', confirmButtonText: '放弃并重新读取', cancelButtonText: '取消' }
+      )
     } catch {
       return
     }
@@ -333,16 +406,142 @@ async function reload() {
 </script>
 
 <style scoped>
-.port{padding:18px 20px 60px;color:var(--dsh-text-1);background:var(--dsh-canvas);min-height:100%}
-.pp-blocked{padding:24px 0}.pp-tip{margin:0 0 16px;color:var(--dsh-text-3);font-size:12px;line-height:1.6}.pp-tip a{color:var(--dsh-accent)}
-.pp-card{margin-bottom:16px;border:1px solid var(--dsh-border);border-radius:var(--dsh-radius);background:var(--dsh-surface)}
-.pp-card :deep(.el-card__header){padding:14px 16px;border-bottom:1px solid var(--dsh-border)}.pp-card :deep(.el-card__body){padding:16px}
-.pp-card-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.pp-card-title{font-weight:600;font-size:15px}.pp-dirty{font-size:12px;color:var(--dsh-warning)}.pp-spacer{flex:1}
-.pp-note{margin:0 0 14px;font-size:12px;color:var(--dsh-text-3);line-height:1.7}
-.port-row-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:14px}
-.port-row-card{min-width:0;border:1px solid var(--dsh-border);border-radius:var(--dsh-radius);background:var(--dsh-canvas)}.port-row-card :deep(.el-card__body){padding:14px 16px}
-.port-row-title{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-bottom:10px;margin-bottom:4px;border-bottom:1px solid var(--dsh-border);font-size:13px}
-.port-field{display:grid;grid-template-columns:minmax(100px,.8fr) minmax(0,1.2fr);gap:6px 14px;align-items:center;padding:10px 0;border-bottom:1px solid var(--dsh-border)}.port-field:last-child{border-bottom:0}.port-field label{color:var(--dsh-text-2);font-size:12px;line-height:1.5}.port-field :deep(.el-select),.port-field :deep(.el-input){width:100%;min-width:0}
-.pp-err,.pp-warn,.pp-hint{grid-column:2;font-size:11px;line-height:1.5;overflow-wrap:anywhere}.pp-err{color:var(--dsh-danger)}.pp-warn{color:var(--dsh-warning)}.pp-hint,.pp-na,.pp-unit{color:var(--dsh-text-3)}.pp-na{font-size:12px}
-@media(max-width:650px){.port{padding:14px 12px 60px}.pp-card :deep(.el-card__body){padding:12px}.port-row-grid{grid-template-columns:1fr}.port-field{gap:6px 10px}.pp-card-title{font-size:14px}}
+.port {
+  padding: 18px 20px 60px;
+  color: var(--dsh-text-1);
+  background: var(--dsh-canvas);
+  min-height: 100%;
+}
+.pp-blocked {
+  padding: 24px 0;
+}
+.pp-tip {
+  margin: 0 0 16px;
+  color: var(--dsh-text-3);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.pp-tip a {
+  color: var(--dsh-accent);
+}
+.pp-card {
+  margin-bottom: 16px;
+  border: 1px solid var(--dsh-border);
+  border-radius: var(--dsh-radius);
+  background: var(--dsh-surface);
+}
+.pp-card :deep(.el-card__header) {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--dsh-border);
+}
+.pp-card :deep(.el-card__body) {
+  padding: 16px;
+}
+.pp-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.pp-card-title {
+  font-weight: 600;
+  font-size: 15px;
+}
+.pp-dirty {
+  font-size: 12px;
+  color: var(--dsh-warning);
+}
+.pp-spacer {
+  flex: 1;
+}
+.pp-note {
+  margin: 0 0 14px;
+  font-size: 12px;
+  color: var(--dsh-text-3);
+  line-height: 1.7;
+}
+.port-row-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 14px;
+}
+.port-row-card {
+  min-width: 0;
+  border: 1px solid var(--dsh-border);
+  border-radius: var(--dsh-radius);
+  background: var(--dsh-canvas);
+}
+.port-row-card :deep(.el-card__body) {
+  padding: 14px 16px;
+}
+.port-row-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 10px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--dsh-border);
+  font-size: 13px;
+}
+.port-field {
+  display: grid;
+  grid-template-columns: minmax(100px, 0.8fr) minmax(0, 1.2fr);
+  gap: 6px 14px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--dsh-border);
+}
+.port-field:last-child {
+  border-bottom: 0;
+}
+.port-field label {
+  color: var(--dsh-text-2);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.port-field :deep(.el-select),
+.port-field :deep(.el-input) {
+  width: 100%;
+  min-width: 0;
+}
+.pp-err,
+.pp-warn,
+.pp-hint {
+  grid-column: 2;
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.pp-err {
+  color: var(--dsh-danger);
+}
+.pp-warn {
+  color: var(--dsh-warning);
+}
+.pp-hint,
+.pp-na,
+.pp-unit {
+  color: var(--dsh-text-3);
+}
+.pp-na {
+  font-size: 12px;
+}
+@media (max-width: 650px) {
+  .port {
+    padding: 14px 12px 60px;
+  }
+  .pp-card :deep(.el-card__body) {
+    padding: 12px;
+  }
+  .port-row-grid {
+    grid-template-columns: 1fr;
+  }
+  .port-field {
+    gap: 6px 10px;
+  }
+  .pp-card-title {
+    font-size: 14px;
+  }
+}
 </style>

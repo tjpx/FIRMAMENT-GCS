@@ -21,13 +21,18 @@
 -->
 <template>
   <div class="diag">
-    <el-alert type="info" :closable="false" show-icon
+    <el-alert
+      type="info"
+      :closable="false"
+      show-icon
       title="链路体检：只读普查，不写参数、不写文件、不发执行命令"
-      description="采集飞控身份、配置文件、目录、参数、遥测消息与控制台连接状态，可导出报告用于排查。未收到的数据会注明原因；本页不进行校准、电机测试或重启。" />
+      description="采集飞控身份、配置文件、目录、参数、遥测消息与控制台连接状态，可导出报告用于排查。未收到的数据会注明原因；本页不进行校准、电机测试或重启。"
+    />
 
     <div class="diag-bar">
-      <el-button type="primary" :disabled="!connected || busy !== ''" :loading="busy === 'all'"
-                 @click="runAll">全部执行（约 {{ totalTimeSec }} 秒）</el-button>
+      <el-button type="primary" :disabled="!connected || busy !== ''" :loading="busy === 'all'" @click="runAll"
+        >全部执行（约 {{ totalTimeSec }} 秒）</el-button
+      >
       <el-button :disabled="!collected" @click="exportReport">导出体检 JSON</el-button>
       <el-button :disabled="!collected" @click="copyDigest">复制中文摘要</el-button>
       <span v-if="!connected" class="diag-hint">未连接飞控，请先在顶栏选择设备串口并连接</span>
@@ -41,16 +46,23 @@
       <el-collapse-item name="identity">
         <template #title>
           <span class="diag-title">① 飞控身份（HEARTBEAT）</span>
-          <el-tag size="small" :type="tagType(steps.identity.status)" class="diag-tag">{{ tagText(steps.identity.status) }}</el-tag>
+          <el-tag size="small" :type="tagType(steps.identity.status)" class="diag-tag">{{
+            tagText(steps.identity.status)
+          }}</el-tag>
         </template>
         <div class="diag-tools">
-          <el-button size="small" :disabled="!connected || busy !== ''" @click="runStep('identity')">单独执行</el-button>
-          <span class="diag-hint">AUTOPILOT_VERSION 靠飞控主动上报，这里只听 {{ AUTOPILOT_LISTEN_MS / 1000 }} 秒，不发请求命令。</span>
+          <el-button size="small" :disabled="!connected || busy !== ''" @click="runStep('identity')"
+            >单独执行</el-button
+          >
+          <span class="diag-hint"
+            >AUTOPILOT_VERSION 靠飞控主动上报，这里只听 {{ AUTOPILOT_LISTEN_MS / 1000 }} 秒，不发请求命令。</span
+          >
         </div>
         <div v-if="steps.identity.error" class="diag-error">{{ steps.identity.error }}</div>
         <div v-if="steps.identity.data" class="diag-kv">
           <div v-for="row in identityRows(steps.identity.data)" :key="row.k" class="diag-kvrow">
-            <span class="diag-k">{{ row.k }}</span><span class="diag-v">{{ row.v }}</span>
+            <span class="diag-k">{{ row.k }}</span
+            ><span class="diag-v">{{ row.v }}</span>
           </div>
         </div>
       </el-collapse-item>
@@ -59,7 +71,9 @@
       <el-collapse-item name="files">
         <template #title>
           <span class="diag-title">② 机载配置文件（MAVFTP 只读下载）</span>
-          <el-tag size="small" :type="tagType(steps.files.status)" class="diag-tag">{{ tagText(steps.files.status) }}</el-tag>
+          <el-tag size="small" :type="tagType(steps.files.status)" class="diag-tag">{{
+            tagText(steps.files.status)
+          }}</el-tag>
         </template>
         <div class="diag-tools">
           <el-button size="small" :disabled="!connected || busy !== ''" @click="runStep('files')">单独执行</el-button>
@@ -93,7 +107,9 @@
       <el-collapse-item name="sys">
         <template #title>
           <span class="diag-title">③ /sys 目录列举</span>
-          <el-tag size="small" :type="tagType(steps.sys.status)" class="diag-tag">{{ tagText(steps.sys.status) }}</el-tag>
+          <el-tag size="small" :type="tagType(steps.sys.status)" class="diag-tag">{{
+            tagText(steps.sys.status)
+          }}</el-tag>
         </template>
         <div class="diag-tools">
           <el-button size="small" :disabled="!connected || busy !== ''" @click="runStep('sys')">单独执行</el-button>
@@ -103,7 +119,12 @@
         <div v-if="steps.sys.data" class="diag-hint">
           共 {{ steps.sys.data.count }} 项 · 实际返回形状 {{ steps.sys.data.shape }}
         </div>
-        <el-table v-if="steps.sys.data && steps.sys.data.count" :data="steps.sys.data.entries" size="small" class="diag-table">
+        <el-table
+          v-if="steps.sys.data && steps.sys.data.count"
+          :data="steps.sys.data.entries"
+          size="small"
+          class="diag-table"
+        >
           <el-table-column prop="name" label="名称">
             <template #default="{ row }">{{ row.name || '—' }}</template>
           </el-table-column>
@@ -111,7 +132,7 @@
             <template #default="{ row }">{{ row.size === null ? '—' : row.size }}</template>
           </el-table-column>
           <el-table-column prop="directory" label="目录" width="90">
-            <template #default="{ row }">{{ row.directory === null ? '—' : (row.directory ? '是' : '否') }}</template>
+            <template #default="{ row }">{{ row.directory === null ? '—' : row.directory ? '是' : '否' }}</template>
           </el-table-column>
         </el-table>
       </el-collapse-item>
@@ -120,7 +141,9 @@
       <el-collapse-item name="params">
         <template #title>
           <span class="diag-title">④ 参数表普查（PARAM_REQUEST_LIST）</span>
-          <el-tag size="small" :type="tagType(steps.params.status)" class="diag-tag">{{ tagText(steps.params.status) }}</el-tag>
+          <el-tag size="small" :type="tagType(steps.params.status)" class="diag-tag">{{
+            tagText(steps.params.status)
+          }}</el-tag>
         </template>
         <div class="diag-tools">
           <el-button size="small" :disabled="!connected || busy !== ''" @click="runStep('params')">单独执行</el-button>
@@ -128,32 +151,80 @@
         </div>
         <div v-if="steps.params.error" class="diag-error">{{ steps.params.error }}</div>
         <div v-if="steps.params.data" class="diag-kv">
-          <div class="diag-kvrow"><span class="diag-k">读到 / 声称总数</span>
-            <span class="diag-v">{{ steps.params.data.summary.got }} / {{ steps.params.data.summary.total === null ? '未告知' : steps.params.data.summary.total }}</span></div>
-          <div class="diag-kvrow"><span class="diag-k">结束原因</span><span class="diag-v">{{ steps.params.data.summary.reason || '未采集' }}</span></div>
-          <div class="diag-kvrow"><span class="diag-k">耗时</span>
-            <span class="diag-v">{{ steps.params.data.summary.ms === null ? '—' : steps.params.data.summary.ms + ' ms' }}</span></div>
-          <div class="diag-kvrow"><span class="diag-k">结论</span><span class="diag-v">{{ steps.params.data.summary.note }}</span></div>
-          <div class="diag-kvrow"><span class="diag-k">名字带下划线 / 不带</span>
-            <span class="diag-v">{{ steps.params.data.shape.withUnderscore }} / {{ steps.params.data.shape.withoutUnderscore }}</span></div>
-          <div class="diag-kvrow"><span class="diag-k">首段前缀种类</span><span class="diag-v">{{ steps.params.data.shape.prefixKinds }}</span></div>
-          <div class="diag-kvrow"><span class="diag-k">前缀分布</span><span class="diag-v">{{ prefixText(steps.params.data.shape) }}</span></div>
-          <div class="diag-kvrow"><span class="diag-k">最长名字 / 逼近 16 字节</span>
-            <span class="diag-v">{{ steps.params.data.shape.maxLength }} 字节 / {{ steps.params.data.shape.nearParamIdLimit }} 条</span></div>
-          <div class="diag-kvrow"><span class="diag-k">名字样例</span><span class="diag-v">{{ steps.params.data.shape.samples.join(' 、 ') || '—' }}</span></div>
-          <div class="diag-kvrow" v-if="steps.params.data.audit"><span class="diag-k">类型分布</span>
-            <span class="diag-v">{{ auditTypeText(steps.params.data.audit) }}</span></div>
-          <div class="diag-kvrow" v-if="steps.params.data.audit"><span class="diag-k">整型参数</span>
-            <span class="diag-v">{{ steps.params.data.audit.intTyped }} 条（float 与整型两种读法分歧 {{ steps.params.data.audit.divergingCount }} 条，不可仅凭链路定值 {{ steps.params.data.audit.unreliable }} 条）</span></div>
+          <div class="diag-kvrow">
+            <span class="diag-k">读到 / 声称总数</span>
+            <span class="diag-v"
+              >{{ steps.params.data.summary.got }} /
+              {{ steps.params.data.summary.total === null ? '未告知' : steps.params.data.summary.total }}</span
+            >
+          </div>
+          <div class="diag-kvrow">
+            <span class="diag-k">结束原因</span
+            ><span class="diag-v">{{ steps.params.data.summary.reason || '未采集' }}</span>
+          </div>
+          <div class="diag-kvrow">
+            <span class="diag-k">耗时</span>
+            <span class="diag-v">{{
+              steps.params.data.summary.ms === null ? '—' : steps.params.data.summary.ms + ' ms'
+            }}</span>
+          </div>
+          <div class="diag-kvrow">
+            <span class="diag-k">结论</span><span class="diag-v">{{ steps.params.data.summary.note }}</span>
+          </div>
+          <div class="diag-kvrow">
+            <span class="diag-k">名字带下划线 / 不带</span>
+            <span class="diag-v"
+              >{{ steps.params.data.shape.withUnderscore }} / {{ steps.params.data.shape.withoutUnderscore }}</span
+            >
+          </div>
+          <div class="diag-kvrow">
+            <span class="diag-k">首段前缀种类</span
+            ><span class="diag-v">{{ steps.params.data.shape.prefixKinds }}</span>
+          </div>
+          <div class="diag-kvrow">
+            <span class="diag-k">前缀分布</span><span class="diag-v">{{ prefixText(steps.params.data.shape) }}</span>
+          </div>
+          <div class="diag-kvrow">
+            <span class="diag-k">最长名字 / 逼近 16 字节</span>
+            <span class="diag-v"
+              >{{ steps.params.data.shape.maxLength }} 字节 / {{ steps.params.data.shape.nearParamIdLimit }} 条</span
+            >
+          </div>
+          <div class="diag-kvrow">
+            <span class="diag-k">名字样例</span
+            ><span class="diag-v">{{ steps.params.data.shape.samples.join(' 、 ') || '—' }}</span>
+          </div>
+          <div class="diag-kvrow" v-if="steps.params.data.audit">
+            <span class="diag-k">类型分布</span>
+            <span class="diag-v">{{ auditTypeText(steps.params.data.audit) }}</span>
+          </div>
+          <div class="diag-kvrow" v-if="steps.params.data.audit">
+            <span class="diag-k">整型参数</span>
+            <span class="diag-v"
+              >{{ steps.params.data.audit.intTyped }} 条（float 与整型两种读法分歧
+              {{ steps.params.data.audit.divergingCount }} 条，不可仅凭链路定值
+              {{ steps.params.data.audit.unreliable }} 条）</span
+            >
+          </div>
           <div class="diag-kvrow" v-if="steps.params.data.audit && steps.params.data.audit.duplicatedFrames !== null">
             <span class="diag-k">重名帧数</span>
-            <span class="diag-v">{{ steps.params.data.audit.duplicatedFrames }} 帧（收到 {{ steps.params.data.audit.frames }} 帧、去重后 {{ steps.params.data.audit.total }} 个名字）</span></div>
+            <span class="diag-v"
+              >{{ steps.params.data.audit.duplicatedFrames }} 帧（收到 {{ steps.params.data.audit.frames }} 帧、去重后
+              {{ steps.params.data.audit.total }} 个名字）</span
+            >
+          </div>
           <div class="diag-kvrow" v-if="steps.params.data.audit && steps.params.data.audit.diverging.length">
             <span class="diag-k">分歧样例</span>
-            <span class="diag-v">{{ auditDivergeText(steps.params.data.audit) }}</span></div>
+            <span class="diag-v">{{ auditDivergeText(steps.params.data.audit) }}</span>
+          </div>
         </div>
-        <el-table v-if="steps.params.data && steps.params.data.rows.length" :data="steps.params.data.rows"
-                  size="small" max-height="260" class="diag-table">
+        <el-table
+          v-if="steps.params.data && steps.params.data.rows.length"
+          :data="steps.params.data.rows"
+          size="small"
+          max-height="260"
+          class="diag-table"
+        >
           <el-table-column prop="index" label="#" width="60" />
           <el-table-column prop="name" label="参数名（飞控原样）" width="200" />
           <el-table-column prop="type" label="类型码" width="80">
@@ -163,7 +234,10 @@
             <template #default="{ row }">{{ row.value === null ? '—' : row.value }}</template>
           </el-table-column>
         </el-table>
-        <div v-if="steps.params.data && steps.params.data.summary.got > steps.params.data.rows.length" class="diag-hint">
+        <div
+          v-if="steps.params.data && steps.params.data.summary.got > steps.params.data.rows.length"
+          class="diag-hint"
+        >
           界面只列前 {{ steps.params.data.rows.length }} 条，全表在导出的 JSON 里。
         </div>
       </el-collapse-item>
@@ -172,19 +246,33 @@
       <el-collapse-item name="telemetry">
         <template #title>
           <span class="diag-title">⑤ 遥测消息清单（{{ CENSUS_MS / 1000 }} 秒窗口）</span>
-          <el-tag size="small" :type="tagType(steps.telemetry.status)" class="diag-tag">{{ tagText(steps.telemetry.status) }}</el-tag>
+          <el-tag size="small" :type="tagType(steps.telemetry.status)" class="diag-tag">{{
+            tagText(steps.telemetry.status)
+          }}</el-tag>
         </template>
         <div class="diag-tools">
-          <el-button size="small" :disabled="!connected || busy !== ''" @click="runStep('telemetry')">单独执行</el-button>
+          <el-button size="small" :disabled="!connected || busy !== ''" @click="runStep('telemetry')"
+            >单独执行</el-button
+          >
           <span class="diag-hint">统计采集窗口内收到的各类消息数量与频率。</span>
         </div>
         <div v-if="steps.telemetry.error" class="diag-error">{{ steps.telemetry.error }}</div>
         <div v-if="steps.telemetry.data" class="diag-kv">
-          <div class="diag-kvrow"><span class="diag-k">窗口</span><span class="diag-v">{{ steps.telemetry.data.windowMs }} ms</span></div>
-          <div class="diag-kvrow"><span class="diag-k">种类数</span><span class="diag-v">{{ steps.telemetry.data.rows.length }}</span></div>
-          <div class="diag-kvrow"><span class="diag-k">窗口内增量字节</span>
-            <span class="diag-v">{{ steps.telemetry.data.bytesInWindow === null ? '—' : steps.telemetry.data.bytesInWindow }}</span></div>
-          <div class="diag-kvrow"><span class="diag-k">窗口内 CRC 错误</span><span class="diag-v">{{ steps.telemetry.data.crcErrors }}</span></div>
+          <div class="diag-kvrow">
+            <span class="diag-k">窗口</span><span class="diag-v">{{ steps.telemetry.data.windowMs }} ms</span>
+          </div>
+          <div class="diag-kvrow">
+            <span class="diag-k">种类数</span><span class="diag-v">{{ steps.telemetry.data.rows.length }}</span>
+          </div>
+          <div class="diag-kvrow">
+            <span class="diag-k">窗口内增量字节</span>
+            <span class="diag-v">{{
+              steps.telemetry.data.bytesInWindow === null ? '—' : steps.telemetry.data.bytesInWindow
+            }}</span>
+          </div>
+          <div class="diag-kvrow">
+            <span class="diag-k">窗口内 CRC 错误</span><span class="diag-v">{{ steps.telemetry.data.crcErrors }}</span>
+          </div>
         </div>
         <el-table v-if="steps.telemetry.data" :data="steps.telemetry.data.findings" size="small" class="diag-table">
           <el-table-column prop="name" label="关注消息" width="190" />
@@ -196,8 +284,13 @@
           </el-table-column>
           <el-table-column prop="note" label="说明" />
         </el-table>
-        <el-table v-if="steps.telemetry.data && steps.telemetry.data.rows.length" :data="steps.telemetry.data.rows"
-                  size="small" max-height="260" class="diag-table">
+        <el-table
+          v-if="steps.telemetry.data && steps.telemetry.data.rows.length"
+          :data="steps.telemetry.data.rows"
+          size="small"
+          max-height="260"
+          class="diag-table"
+        >
           <el-table-column prop="msgid" label="msgid" width="80" />
           <el-table-column prop="name" label="消息名" width="200" />
           <el-table-column prop="rxInWindow" label="窗口条数" width="100" />
@@ -213,7 +306,9 @@
       <el-collapse-item name="console">
         <template #title>
           <span class="diag-title">⑥ 控制台会话探针（只发只读命令）</span>
-          <el-tag size="small" :type="tagType(steps.console.status)" class="diag-tag">{{ tagText(steps.console.status) }}</el-tag>
+          <el-tag size="small" :type="tagType(steps.console.status)" class="diag-tag">{{
+            tagText(steps.console.status)
+          }}</el-tag>
         </template>
         <div class="diag-tools">
           <el-button size="small" :disabled="!connected || busy !== ''" @click="runStep('console')">单独执行</el-button>
@@ -221,10 +316,19 @@
         </div>
         <div v-if="steps.console.error" class="diag-error">{{ steps.console.error }}</div>
         <div v-if="steps.console.data" class="diag-kv">
-          <div class="diag-kvrow"><span class="diag-k">回显</span><span class="diag-v">{{ steps.console.data.responded ? '有' : '无' }}</span></div>
-          <div class="diag-kvrow"><span class="diag-k">字节 / 行数</span><span class="diag-v">{{ steps.console.data.bytes }} / {{ steps.console.data.lines }}</span></div>
-          <div class="diag-kvrow"><span class="diag-k">等待窗口</span><span class="diag-v">{{ steps.console.data.waitedMs }} ms</span></div>
-          <div class="diag-kvrow"><span class="diag-k">结论</span><span class="diag-v">{{ steps.console.data.note }}</span></div>
+          <div class="diag-kvrow">
+            <span class="diag-k">回显</span><span class="diag-v">{{ steps.console.data.responded ? '有' : '无' }}</span>
+          </div>
+          <div class="diag-kvrow">
+            <span class="diag-k">字节 / 行数</span
+            ><span class="diag-v">{{ steps.console.data.bytes }} / {{ steps.console.data.lines }}</span>
+          </div>
+          <div class="diag-kvrow">
+            <span class="diag-k">等待窗口</span><span class="diag-v">{{ steps.console.data.waitedMs }} ms</span>
+          </div>
+          <div class="diag-kvrow">
+            <span class="diag-k">结论</span><span class="diag-v">{{ steps.console.data.note }}</span>
+          </div>
         </div>
         <pre v-if="steps.console.data && steps.console.data.raw" class="diag-raw">{{ steps.console.data.raw }}</pre>
       </el-collapse-item>
@@ -232,7 +336,9 @@
 
     <div v-if="errors.length" class="diag-block">
       <div class="diag-h">采集过程中的错误（{{ errors.length }} 条，原文保留）</div>
-      <div v-for="(e, i) in errors" :key="i" class="diag-error">{{ e.step }} · {{ e.at }} · {{ e.name ? e.name + '：' : '' }}{{ e.error }}</div>
+      <div v-for="(e, i) in errors" :key="i" class="diag-error">
+        {{ e.step }} · {{ e.at }} · {{ e.name ? e.name + '：' : '' }}{{ e.error }}
+      </div>
     </div>
 
     <div class="diag-block">
@@ -301,16 +407,20 @@ const totalTimeSec = computed(() => Math.round((CENSUS_MS + AUTOPILOT_LISTEN_MS 
 
 const timers = new Set()
 const cleanups = new Set()
-const sleep = (ms) => new Promise((resolve) => {
-  const h = setTimeout(() => { timers.delete(h); resolve() }, ms)
-  timers.add(h)
-})
+const sleep = (ms) =>
+  new Promise((resolve) => {
+    const h = setTimeout(() => {
+      timers.delete(h)
+      resolve()
+    }, ms)
+    timers.add(h)
+  })
 
 function tagType(s) {
-  return s === 'ok' ? 'success' : (s === 'run' ? 'warning' : (s === 'fail' ? 'danger' : 'info'))
+  return s === 'ok' ? 'success' : s === 'run' ? 'warning' : s === 'fail' ? 'danger' : 'info'
 }
 function tagText(s) {
-  return s === 'ok' ? '已采集' : (s === 'run' ? '采集中' : (s === 'fail' ? '失败' : '未执行'))
+  return s === 'ok' ? '已采集' : s === 'run' ? '采集中' : s === 'fail' ? '失败' : '未执行'
 }
 function identityRows(d) {
   const id = d.identity || {}
@@ -321,10 +431,24 @@ function identityRows(d) {
     { k: 'type / autopilot', v: `${fmt(id.type)} / ${fmt(id.autopilot)}` },
     { k: '模式', v: fmt(id.modeName) + (id.modeCode === null ? '' : `（custom_mode ${id.modeCode}）`) },
     { k: '是否解锁', v: id.armed ? '已解锁（本页不会替你解锁）' : '未解锁' },
-    { k: '心跳距今', v: id.heartbeatAgeMs === null ? '—' : `${id.heartbeatAgeMs} ms ${id.heartbeatAlive ? '（新鲜）' : '（超时：链路可能已断）'}` },
+    {
+      k: '心跳距今',
+      v:
+        id.heartbeatAgeMs === null
+          ? '—'
+          : `${id.heartbeatAgeMs} ms ${id.heartbeatAlive ? '（新鲜）' : '（超时：链路可能已断）'}`,
+    },
     { k: '波特率', v: fmt(id.baudRate) },
-    { k: '链路统计', v: `帧 ${fmt(link.frames)} · 消息 ${fmt(link.rxMsgs)} · 字节 ${fmt(link.rxBytes)} · CRC 错 ${fmt(link.crcErrors)} · 协议表自愈 ${fmt(link.learnedCrcExtra)}` },
-    { k: 'AUTOPILOT_VERSION', v: av.seen ? '在主动上报（字段进导出 JSON）' : `窗口内未上报（${av.waitedMs} ms）：要拿固件版本得发请求命令，属副作用，未获批` },
+    {
+      k: '链路统计',
+      v: `帧 ${fmt(link.frames)} · 消息 ${fmt(link.rxMsgs)} · 字节 ${fmt(link.rxBytes)} · CRC 错 ${fmt(link.crcErrors)} · 协议表自愈 ${fmt(link.learnedCrcExtra)}`,
+    },
+    {
+      k: 'AUTOPILOT_VERSION',
+      v: av.seen
+        ? '在主动上报（字段进导出 JSON）'
+        : `窗口内未上报（${av.waitedMs} ms）：要拿固件版本得发请求命令，属副作用，未获批`,
+    },
   ]
 }
 function fmt(v) {
@@ -366,7 +490,10 @@ function doIdentity() {
     })
     if (typeof off === 'function') cleanups.add(off)
     await sleep(AUTOPILOT_LISTEN_MS)
-    if (typeof off === 'function') { off(); cleanups.delete(off) }
+    if (typeof off === 'function') {
+      off()
+      cleanups.delete(off)
+    }
     resolve({ identity, autopilotVersion: { seen, fields, waitedMs: AUTOPILOT_LISTEN_MS } })
   })
 }
@@ -402,16 +529,16 @@ async function doParams() {
 
 /* 体检里的类型分布与分歧样例，只在面板显示，全量数据在导出的 JSON 里 */
 function auditTypeText(a) {
-  return (a?.byType || [])
-      .map(b => `${b.text || b.type}:${b.count}`)
-      .join(' 、 ') || '—'
+  return (a?.byType || []).map((b) => `${b.text || b.type}:${b.count}`).join(' 、 ') || '—'
 }
 
 function auditDivergeText(a) {
-  return (a?.diverging || [])
+  return (
+    (a?.diverging || [])
       .slice(0, 3)
-      .map(d => `${d.name} float=${d.float} 整型=${d.typed}`)
+      .map((d) => `${d.name} float=${d.float} 整型=${d.typed}`)
       .join(' ；') || '—'
+  )
 }
 
 /* ⑤ 遥测清单：窗口前后各取一次 msgCensus 快照，差值算频率 */
@@ -438,12 +565,17 @@ function doConsole() {
   if (!mav?.cli?.sendCommand) throw new Error('内核没有提供 cli.sendCommand')
   return new Promise(async (resolve) => {
     let text = ''
-    const off = mav.on('cli', (chunk) => { text += String(chunk ?? '') })
+    const off = mav.on('cli', (chunk) => {
+      text += String(chunk ?? '')
+    })
     if (typeof off === 'function') cleanups.add(off)
     mav.cli.open()
     mav.cli.sendCommand('version')
     await sleep(CONSOLE_WAIT_MS)
-    if (typeof off === 'function') { off(); cleanups.delete(off) }
+    if (typeof off === 'function') {
+      off()
+      cleanups.delete(off)
+    }
     resolve(consoleProbeSummary({ text, ms: CONSOLE_WAIT_MS, sent: 'version' }))
   })
 }
@@ -499,7 +631,9 @@ function currentReport() {
     paramShape: p ? p.shape : null,
     paramList: p ? p.all : null,
     paramAudit: p ? p.audit : null,
-    telemetry: t ? { windowMs: t.windowMs, rows: t.rows, bytesInWindow: t.bytesInWindow, crcErrors: t.crcErrors } : null,
+    telemetry: t
+      ? { windowMs: t.windowMs, rows: t.rows, bytesInWindow: t.bytesInWindow, crcErrors: t.crcErrors }
+      : null,
     findings: t ? t.findings : null,
     consoleProbe: steps.console.data ?? null,
     errors: errors.value,
@@ -507,7 +641,10 @@ function currentReport() {
 }
 
 function exportReport() {
-  if (!mav?.saveBlob) { ElMessage.error('内核没有提供导出通道'); return }
+  if (!mav?.saveBlob) {
+    ElMessage.error('内核没有提供导出通道')
+    return
+  }
   const report = jsonSafe({ ...currentReport(), paramList: steps.params.data ? steps.params.data.all : null })
   const text = JSON.stringify(report, null, 2)
   const name = `link-census-${String(report.generatedAt || '').replace(/[:.]/g, '-')}.json`
@@ -529,28 +666,102 @@ async function copyDigest() {
 onBeforeUnmount(() => {
   for (const h of timers) clearTimeout(h)
   timers.clear()
-  for (const off of cleanups) { try { off() } catch (e) { /* 解绑失败不影响卸载 */ } }
+  for (const off of cleanups) {
+    try {
+      off()
+    } catch (e) {
+      /* 解绑失败不影响卸载 */
+    }
+  }
   cleanups.clear()
 })
 </script>
 
 <style scoped>
-.diag { padding: 4px; }
-.diag-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
-.diag-flex { flex: 1; }
-.diag-hint { color: var(--el-text-color-secondary); font-size: 12px; }
-.diag-steps { margin-bottom: 12px; }
-.diag-title { margin-right: 8px; font-weight: 600; }
-.diag-tag { margin-left: 4px; }
-.diag-tools { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
-.diag-table { width: 100%; margin: 6px 0; }
-.diag-kv { display: grid; grid-template-columns: 190px 1fr; gap: 2px 10px; font-size: 12px; }
-.diag-kvrow { display: contents; }
-.diag-k { color: var(--el-text-color-secondary); }
-.diag-v { word-break: break-all; }
-.diag-error { color: var(--el-color-danger); font-size: 12px; margin: 4px 0; word-break: break-all; }
-.diag-raw { background: var(--el-fill-color-light); padding: 6px 8px; font-size: 12px; white-space: pre-wrap; word-break: break-all; max-height: 220px; overflow: auto; }
-.diag-block { border: 1px solid var(--el-border-color-lighter); border-radius: 4px; padding: 8px 10px; margin: 10px 0; }
-.diag-h { font-weight: 600; font-size: 13px; margin-bottom: 6px; }
-.diag-ul { margin: 0; padding-left: 18px; font-size: 12px; color: var(--el-text-color-secondary); line-height: 1.8; }
+.diag {
+  padding: 4px;
+}
+.diag-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 10px 0;
+}
+.diag-flex {
+  flex: 1;
+}
+.diag-hint {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+.diag-steps {
+  margin-bottom: 12px;
+}
+.diag-title {
+  margin-right: 8px;
+  font-weight: 600;
+}
+.diag-tag {
+  margin-left: 4px;
+}
+.diag-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.diag-table {
+  width: 100%;
+  margin: 6px 0;
+}
+.diag-kv {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  gap: 2px 10px;
+  font-size: 12px;
+}
+.diag-kvrow {
+  display: contents;
+}
+.diag-k {
+  color: var(--el-text-color-secondary);
+}
+.diag-v {
+  word-break: break-all;
+}
+.diag-error {
+  color: var(--el-color-danger);
+  font-size: 12px;
+  margin: 4px 0;
+  word-break: break-all;
+}
+.diag-raw {
+  background: var(--el-fill-color-light);
+  padding: 6px 8px;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 220px;
+  overflow: auto;
+}
+.diag-block {
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 4px;
+  padding: 8px 10px;
+  margin: 10px 0;
+}
+.diag-h {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+.diag-ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.8;
+}
 </style>

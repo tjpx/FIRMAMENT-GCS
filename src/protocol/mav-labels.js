@@ -45,7 +45,6 @@ const RESULT = valueMap('MAV_RESULT')
 const CMD = valueMap('MAV_CMD')
 const SENSOR_BIT = shortMap('MAV_SYS_STATUS_SENSOR')
 const FMT_CMD = valueMap('MavCmd_ID')
-const EXT_FLAG = valueMap('FMT_EXT_STATE_FLAG_TYPE')
 
 /* ------------------------------ 飞行模式 ------------------------------ */
 
@@ -55,7 +54,7 @@ const MAIN_CN = {
   POSCTL: '定点',
   AUTO: '自动',
   ACRO: '特技',
-  OFFBOARD: '离线',
+  OFFBOARD: '板外',
   STABILIZED: '自稳',
   RATTITUDE: '姿态切换',
   SIMPLE: '简单',
@@ -82,7 +81,7 @@ export function isArmed(baseMode) {
 }
 
 /** base_mode 里所有置位的标志，中文短语数组（用于诊断面板） */
-export function describeBaseMode(baseMode) {
+function describeBaseMode(baseMode) {
   const sm = shortMap('MAV_MODE_FLAG')
   const out = []
   for (const k in sm) {
@@ -121,15 +120,23 @@ export function describeMode(baseMode, customMode) {
     return { label: `未知模式(${customMode})`, code: `UNKNOWN_${customMode}`, main, sub, custom, raw: customMode }
   }
   const code = subName && SUB_AUTO[sub] ? `AUTO.${SUB_AUTO[sub]}` : mainName
-  const label = subName ? `${MAIN_CN[mainName]}·${SUB_AUTO_CN[subName] || SUB_POSCTL_CN[subName] || subName}` : MAIN_CN[mainName]
+  const label = subName
+    ? `${MAIN_CN[mainName]}·${SUB_AUTO_CN[subName] || SUB_POSCTL_CN[subName] || subName}`
+    : MAIN_CN[mainName]
   return { label, code, main, sub, custom, raw: customMode }
 }
 
 /* ------------------------------ 状态与告警 ------------------------------ */
 
 const STATE_CN = {
-  UNINIT: '未初始化', BOOT: '启动中', CALIBRATING: '校准中', STANDBY: '待机',
-  ACTIVE: '运行中', CRITICAL: '危险', EMERGENCY: '紧急', POWEROFF: '关机',
+  UNINIT: '未初始化',
+  BOOT: '启动中',
+  CALIBRATING: '校准中',
+  STANDBY: '待机',
+  ACTIVE: '运行中',
+  CRITICAL: '危险',
+  EMERGENCY: '紧急',
+  POWEROFF: '关机',
 }
 
 export function systemState(v) {
@@ -148,15 +155,28 @@ export function severity(v) {
 }
 
 const SEVERITY_CN = {
-  EMERGENCY: '紧急', ALERT: '警告', CRITICAL: '严重', ERROR: '错误',
-  WARNING: '注意', NOTICE: '通知', INFO: '信息', DEBUG: '调试',
+  EMERGENCY: '紧急',
+  ALERT: '警告',
+  CRITICAL: '严重',
+  ERROR: '错误',
+  WARNING: '注意',
+  NOTICE: '通知',
+  INFO: '信息',
+  DEBUG: '调试',
 }
 
 /* ------------------------------ 定位质量 ------------------------------ */
 
 const FIX_CN = {
-  NO_GPS: '无 GPS', NO_FIX: '未定位', '2D_FIX': '2D 定位', '3D_FIX': '3D 定位', DGPS: '差分定位',
-  RTK_FLOAT: 'RTK 浮点解', RTK_FIXED: 'RTK 固定解', STATIC: 'RTK 静态', PPP: 'PPP',
+  NO_GPS: '无 GPS',
+  NO_FIX: '未定位',
+  '2D_FIX': '2D 定位',
+  '3D_FIX': '3D 定位',
+  DGPS: '差分定位',
+  RTK_FLOAT: 'RTK 浮点解',
+  RTK_FIXED: 'RTK 固定解',
+  STATIC: 'RTK 静态',
+  PPP: 'PPP',
 }
 
 export function gpsFix(v) {
@@ -180,8 +200,13 @@ export function vtolState(v) {
 /* ------------------------------ 命令与结果 ------------------------------ */
 
 const RESULT_CN = {
-  ACCEPTED: '已接受', TEMPORARILY_REJECTED: '暂时拒绝', DENIED: '拒绝',
-  UNSUPPORTED: '不支持', FAILED: '失败', IN_PROGRESS: '执行中', CANCELLED: '已取消',
+  ACCEPTED: '已接受',
+  TEMPORARILY_REJECTED: '暂时拒绝',
+  DENIED: '拒绝',
+  UNSUPPORTED: '不支持',
+  FAILED: '失败',
+  IN_PROGRESS: '执行中',
+  CANCELLED: '已取消',
 }
 
 /** 注意：这套 MAVLink 库里 1=TEMPORARILY_REJECTED、2=DENIED，与新版相反，只能取自枚举 */
@@ -195,20 +220,29 @@ export function commandResult(v) {
 }
 
 const CMD_CN = {
-  NAV_WAYPOINT: '航点', NAV_TAKEOFF: '起飞', NAV_LAND: '降落', NAV_RETURN_TO_LAUNCH: '返航',
-  NAV_LOITER_UNLIM: '悬停', NAV_LOITER_TURNS: '环绕悬停', NAV_LOITER_TIME: '定时悬停',
-  NAV_ROI: '兴趣点', NAV_SET_POSITION: '设置位置',
-  COMPONENT_ARM_DISARM: '解锁/上锁', MAV_CMD_PREFLIGHT_CALIBRATION: '校准',
-  PREFLIGHT_REBOOT_SHUTDOWN: '重启/关机', REQUEST_DATA_STREAM: '请求数据流',
-  SET_HOME_POSITION: '设置_home_点', DO_SET_MODE: '切换模式',
+  NAV_WAYPOINT: '航点',
+  NAV_TAKEOFF: '起飞',
+  NAV_LAND: '降落',
+  NAV_RETURN_TO_LAUNCH: '返航',
+  NAV_LOITER_UNLIM: '悬停',
+  NAV_LOITER_TURNS: '环绕悬停',
+  NAV_LOITER_TIME: '定时悬停',
+  NAV_ROI: '兴趣点',
+  NAV_SET_POSITION: '设置位置',
+  COMPONENT_ARM_DISARM: '解锁/上锁',
+  MAV_CMD_PREFLIGHT_CALIBRATION: '校准',
+  PREFLIGHT_REBOOT_SHUTDOWN: '重启/关机',
+  REQUEST_DATA_STREAM: '请求数据流',
+  SET_HOME_POSITION: '设置_home_点',
+  DO_SET_MODE: '切换模式',
   USER_1: '飞控自定义命令',
 }
 
-export function commandName(cmd) {
+function commandName(cmd) {
   return CMD[cmd] || `CMD_${cmd}`
 }
 
-export function commandLabel(cmd) {
+function commandLabel(cmd) {
   const key = CMD[cmd]
   if (!key) return `未知命令(${cmd})`
   const short = key.replace(/^MAV_CMD_/, '')
@@ -220,9 +254,12 @@ export function fmtCommandLabel(id) {
   const key = FMT_CMD[id]
   if (!key) return `FMT_CMD_${id}`
   const cn = {
-    CALIBRATION_GYR: '陀螺仪校准', CALIBRATION_ACC: '加速度计校准',
-    CALIBRATION_MAG: '地磁校准', CALIBRATION_LEVEL: '水平校准',
-    STREAM_SESSION: '数据流会话', ITEM_NUM: '命令总数',
+    CALIBRATION_GYR: '陀螺仪校准',
+    CALIBRATION_ACC: '加速度计校准',
+    CALIBRATION_MAG: '地磁校准',
+    CALIBRATION_LEVEL: '水平校准',
+    STREAM_SESSION: '数据流会话',
+    ITEM_NUM: '命令总数',
   }[key.replace(/^MAVCMD_/, '')]
   return cn ? `${cn}（${id}）` : `${key}（${id}）`
 }
@@ -232,18 +269,35 @@ export function fmtCommandLabel(id) {
 // 成员名取自本库版本的 MAV_SYS_STATUS_SENSOR 枚举（老命名：3D_GYRO / ABSOLUTE_PRESSURE …），
 // 未覆盖的成员自动退回英文短名，因此新增枚举不会造成显示错误，只是少一层中文。
 const SENSOR_CN = {
-  '3D_GYRO': '陀螺仪1', '3D_ACCEL': '加速度计1', '3D_MAG': '地磁1',
-  '3D_GYRO2': '陀螺仪2', '3D_ACCEL2': '加速度计2', '3D_MAG2': '地磁2',
-  ABSOLUTE_PRESSURE: '气压计', DIFFERENTIAL_PRESSURE: '差压空速',
-  GPS: 'GPS', OPTICAL_FLOW: '光流', VISION_POSITION: '视觉定位',
-  LASER_POSITION: '激光测距', EXTERNAL_GROUND_TRUTH: '外部定位(动捕)',
-  ANGULAR_RATE_CONTROL: '角速率控制', ATTITUDE_STABILIZATION: '姿态稳定',
-  YAW_POSITION: '航向控制', Z_ALTITUDE_CONTROL: '高度控制',
-  XY_POSITION_CONTROL: '水平位置控制', MOTOR_OUTPUTS: '电机输出',
-  RC_RECEIVER: '遥控接收机', BATTERY: '电池', PROXIMITY: '近距感知',
-  SATCOM: '卫星通信', PREARM_CHECK: '起飞前检查', OBSTACLE_AVOIDANCE: '避障',
-  MAV_SYS_STATUS_GEOFENCE: '围栏', MAV_SYS_STATUS_AHRS: 'AHRS',
-  MAV_SYS_STATUS_TERRAIN: '地形', MAV_SYS_STATUS_REVERSE_MOTOR: '电机反向',
+  '3D_GYRO': '陀螺仪1',
+  '3D_ACCEL': '加速度计1',
+  '3D_MAG': '地磁1',
+  '3D_GYRO2': '陀螺仪2',
+  '3D_ACCEL2': '加速度计2',
+  '3D_MAG2': '地磁2',
+  ABSOLUTE_PRESSURE: '气压计',
+  DIFFERENTIAL_PRESSURE: '差压空速',
+  GPS: 'GPS',
+  OPTICAL_FLOW: '光流',
+  VISION_POSITION: '视觉定位',
+  LASER_POSITION: '激光测距',
+  EXTERNAL_GROUND_TRUTH: '外部定位(动捕)',
+  ANGULAR_RATE_CONTROL: '角速率控制',
+  ATTITUDE_STABILIZATION: '姿态稳定',
+  YAW_POSITION: '航向控制',
+  Z_ALTITUDE_CONTROL: '高度控制',
+  XY_POSITION_CONTROL: '水平位置控制',
+  MOTOR_OUTPUTS: '电机输出',
+  RC_RECEIVER: '遥控接收机',
+  BATTERY: '电池',
+  PROXIMITY: '近距感知',
+  SATCOM: '卫星通信',
+  PREARM_CHECK: '起飞前检查',
+  OBSTACLE_AVOIDANCE: '避障',
+  MAV_SYS_STATUS_GEOFENCE: '围栏',
+  MAV_SYS_STATUS_AHRS: 'AHRS',
+  MAV_SYS_STATUS_TERRAIN: '地形',
+  MAV_SYS_STATUS_REVERSE_MOTOR: '电机反向',
   MAV_SYS_STATUS_LOGGING: '日志',
 }
 
@@ -252,27 +306,11 @@ export function sensorBits(value) {
   const out = []
   for (const k in SENSOR_BIT) {
     const bit = SENSOR_BIT[k]
-    if (bit && (value & bit)) out.push({ key: k, label: SENSOR_CN[k] || k, bit })
+    if (bit && value & bit) out.push({ key: k, label: SENSOR_CN[k] || k, bit })
   }
   return out
 }
 
-export function sensorLabel(shortKey) {
+function sensorLabel(shortKey) {
   return SENSOR_CN[shortKey] || shortKey
-}
-
-/* ------------------------------ FMT 扩展状态 ------------------------------ */
-
-/** FMT_EXTERNAL_STATE.flag 展开（外部视觉/动捕状态页使用） */
-export function extStateFlags(flag) {
-  const names = {
-    ATT_VALID: '姿态', HEADING_VALID: '航向', VEL_VALID: '速度',
-    LLA_VALID: '经纬度', POS_VALID: '位置', HGT_VALID: '高度', H_AGL_VALID: '对地高度',
-  }
-  const out = []
-  for (const k in EXT_FLAG) {
-    const bit = EXT_FLAG[k]
-    if (bit && (flag & bit)) out.push(names[k.replace(/^FMT_EXT_STATE_FLAG_/, '')] || k)
-  }
-  return out
 }

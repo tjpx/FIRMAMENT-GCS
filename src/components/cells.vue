@@ -24,16 +24,16 @@
   <div class="battery-config-container">
     <!-- 顶部安全警告 -->
     <el-alert
-        title="安全警告：请确保在连接电池前完成所有设置，错误的低电压保护值可能导致电池过放损坏或飞行事故。"
-        type="error"
-        :closable="false"
-        show-icon
-        class="mb-4"
+      title="安全警告：请确保在连接电池前完成所有设置，错误的低电压保护值可能导致电池过放损坏或飞行事故。"
+      type="error"
+      :closable="false"
+      show-icon
+      class="mb-4"
     />
 
     <PrototypeNotice
-        title="实时监控接的是 SYS_STATUS 真遥测；下方的保护值与校准系数目前只能本地编辑，写不回飞控"
-        :items="noticeItems"
+      title="实时监控接的是 SYS_STATUS 真遥测；下方的保护值与校准系数目前只能本地编辑，写不回飞控"
+      :items="noticeItems"
     />
 
     <el-row :gutter="20">
@@ -49,25 +49,19 @@
 
           <!-- 电压曲线图 -->
           <div class="chart-wrapper">
-            <canvas ref="voltageChartRef" height="200"/>
-            <div v-if="!hasBattery" class="chart-placeholder">
-              未收到电池电压（SYS_STATUS.voltage_battery 为 0）
-            </div>
+            <canvas ref="voltageChartRef" height="200" />
+            <div v-if="!hasBattery" class="chart-placeholder">未收到电池电压（SYS_STATUS.voltage_battery 为 0）</div>
           </div>
 
           <el-descriptions :column="3" border class="mt-4">
             <el-descriptions-item label="当前总电压">
               <span class="highlight-text">{{ textVol }} V</span>
             </el-descriptions-item>
-            <el-descriptions-item label="单片平均">
-              {{ textCell }} V
-            </el-descriptions-item>
+            <el-descriptions-item label="单片平均"> {{ textCell }} V </el-descriptions-item>
             <el-descriptions-item label="剩余电量">
               {{ textPercent }}
             </el-descriptions-item>
-            <el-descriptions-item label="当前电流">
-              {{ textAmp }} A
-            </el-descriptions-item>
+            <el-descriptions-item label="当前电流"> {{ textAmp }} A </el-descriptions-item>
             <el-descriptions-item label="采样来源">
               {{ hasBattery ? 'SYS_STATUS（1 Hz）' : '--' }}
             </el-descriptions-item>
@@ -98,11 +92,7 @@
               </div>
               <div v-if="calibStep === 2" class="step-content">
                 <!-- 没有写入通道，就不能说"校准成功" -->
-                <el-result
-                    icon="info"
-                    title="已记录到本页（未写入飞控）"
-                    :sub-title="calibSummary"
-                >
+                <el-result icon="info" title="已记录到本页（未写入飞控）" :sub-title="calibSummary">
                   <template #extra>
                     <el-button @click="resetCalibration">重新校准</el-button>
                   </template>
@@ -175,7 +165,8 @@
           <div class="card-footer">
             <el-button type="primary" class="w-full" @click="saveAllSettings">保存所有设置</el-button>
             <span class="sub-label">
-              实际生效值请写进 /sys/sysconfig.toml 的电池与失控保护段，并用「参数配置」页上传（上传后地面站会回读 CRC32 校验）。
+              实际生效值请写进 /sys/sysconfig.toml 的电池与失控保护段，并用「参数配置」页上传（上传后地面站会回读 CRC32
+              校验）。
             </span>
           </div>
         </el-card>
@@ -210,7 +201,13 @@ const series = reactive({ labels: [], data: [] })
 /* ---------- 读数格式化：拿不到就 -- ---------- */
 // 结构体初值是 0，跟"飞控报了 0"长得一样；所以必须确认至少收到过一帧 SYS_STATUS
 const sysStatusSeen = ref(false)
-watch(() => mav.data.sysStatus, () => { sysStatusSeen.value = true }, { deep: true })
+watch(
+  () => mav.data.sysStatus,
+  () => {
+    sysStatusSeen.value = true
+  },
+  { deep: true }
+)
 
 const hasVoltage = computed(() => sysStatusSeen.value && battery.voltage > 0)
 const hasPercent = computed(() => sysStatusSeen.value && Number.isFinite(battery.percent) && battery.percent >= 0)
@@ -235,18 +232,21 @@ const batteryStatus = computed(() => {
 })
 
 /* ---------- 电压曲线：只记真采样 ---------- */
-watch(() => battery.voltage, (v) => {
-  if (!(v > 0) || !chartInstance) return
-  series.labels.push(new Date().toLocaleTimeString('zh-CN', { hour12: false }))
-  series.data.push(Number(v.toFixed(3)))
-  if (series.labels.length > MAX_POINTS) {
-    series.labels.shift()
-    series.data.shift()
+watch(
+  () => battery.voltage,
+  (v) => {
+    if (!(v > 0) || !chartInstance) return
+    series.labels.push(new Date().toLocaleTimeString('zh-CN', { hour12: false }))
+    series.data.push(Number(v.toFixed(3)))
+    if (series.labels.length > MAX_POINTS) {
+      series.labels.shift()
+      series.data.shift()
+    }
+    if (chartInstance) {
+      chartInstance.update('none')
+    }
   }
-  if (chartInstance) {
-    chartInstance.update('none')
-  }
-})
+)
 
 onMounted(() => {
   // 这一段每一步都必须"可以失败"：canvas 取不到、Chart 构造抛异常，
@@ -267,17 +267,20 @@ onMounted(() => {
       type: 'line',
       data: {
         labels: series.labels,
-        datasets: [{
-          label: '电池电压 (V)',
-          data: series.data,
-          /* 画布取色不吃 var()，从当前主题的 CSS 变量读一次（重建图表时重读） */
-          borderColor: getComputedStyle(document.documentElement).getPropertyValue('--dsh-accent').trim() || '#66ccff',
-          backgroundColor: 'rgba(64, 158, 255, 0.1)',
-          tension: 0.4,
-          fill: true,
-          pointRadius: 0,
-          spanGaps: false,
-        }]
+        datasets: [
+          {
+            label: '电池电压 (V)',
+            data: series.data,
+            /* 画布取色不吃 var()，从当前主题的 CSS 变量读一次（重建图表时重读） */
+            borderColor:
+              getComputedStyle(document.documentElement).getPropertyValue('--dsh-accent').trim() || '#66ccff',
+            backgroundColor: 'rgba(64, 158, 255, 0.1)',
+            tension: 0.4,
+            fill: true,
+            pointRadius: 0,
+            spanGaps: false,
+          },
+        ],
       },
       options: {
         responsive: true,
@@ -285,10 +288,10 @@ onMounted(() => {
         animation: false,
         scales: {
           y: { grace: '10%', grid: { color: 'rgba(128,128,128,0.25)' } },
-          x: { ticks: { maxTicksLimit: 6 } }
+          x: { ticks: { maxTicksLimit: 6 } },
         },
-        plugins: { legend: { display: false } }
-      }
+        plugins: { legend: { display: false } },
+      },
     })
   } catch (e) {
     // 建图失败时把实例留在 null，上面的 watch 回调会因此跳过刷新（已判空），
@@ -339,13 +342,13 @@ const lvpForm = reactive({
   warnVolt: 3.5,
   landVolt: 3.3,
   cutVolt: 3.0,
-  cells: 4
+  cells: 4,
 })
 
 const fsForm = reactive({
   delay: 1000,
   action: 'drop',
-  throttle: 15
+  throttle: 15,
 })
 
 const saveAllSettings = () => {
@@ -450,7 +453,7 @@ const saveAllSettings = () => {
 }
 
 /* 暗色模式适配 */
-[data-theme="dark"] .chart-wrapper {
+[data-theme='dark'] .chart-wrapper {
   background: rgba(255, 255, 255, 0.05);
 }
 </style>

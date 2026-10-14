@@ -3,7 +3,10 @@
 export function parseImuEcho(text) {
   const rows = []
   const number = '([-+\\d.eE]+)'
-  const re = new RegExp(`gyr:\\s*${number}\\s+${number}\\s+${number}\\s+acc:\\s*${number}\\s+${number}\\s+${number}`, 'g')
+  const re = new RegExp(
+    `gyr:\\s*${number}\\s+${number}\\s+${number}\\s+acc:\\s*${number}\\s+${number}\\s+${number}`,
+    'g'
+  )
   for (const m of String(text).matchAll(re)) {
     const values = m.slice(1).map(Number)
     if (values.every(Number.isFinite)) rows.push({ gyro: values.slice(0, 3), accel: values.slice(3) })
@@ -30,6 +33,9 @@ export function summarizeImu(rows) {
 }
 export function sixFaceProgress(states, currentFace, progress) {
   const done = Object.values(states).filter((s) => s.state === 'done').length
-  const partial = states[currentFace]?.state === 'active' && Number.isFinite(progress) ? Math.max(0, Math.min(100, progress)) / 100 : 0
-  return Math.min(100, Math.round((done + partial) / 6 * 100))
+  const partial =
+    states[currentFace]?.state === 'active' && Number.isFinite(progress)
+      ? Math.max(0, Math.min(100, progress)) / 100
+      : 0
+  return Math.min(100, Math.round(((done + partial) / 6) * 100))
 }

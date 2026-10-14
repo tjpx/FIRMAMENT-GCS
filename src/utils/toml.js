@@ -29,89 +29,89 @@ class TomlParseError extends Error {
 
 export function parseToml(text) {
   // 1. 预处理：统一换行符
-  const lines = text.replace(/\r\n?/g, '\n').split('\n');
-  const root = {};
-  let current = root;
-  let currentPath = [];
+  const lines = text.replace(/\r\n?/g, '\n').split('\n')
+  const root = {}
+  let current = root
+  let currentPath = []
 
   for (let i = 0; i < lines.length; i++) {
-    const lineNo = i + 1;
-    let line = lines[i];
+    const lineNo = i + 1
+    let line = lines[i]
 
     // 2. 使用自定义函数去除注释
-    line = stripComment(line);
-    line = line.trim();
+    line = stripComment(line)
+    line = line.trim()
 
     // 跳过空行
-    if (!line) continue;
+    if (!line) continue
 
     // 3. 处理表数组 [[array.of.tables]]
     if (line.startsWith('[[') && line.endsWith(']]')) {
-      const arrayName = line.slice(2, -2).trim();
-      if (!arrayName) throw new TomlParseError('空的表数组名', lineNo);
+      const arrayName = line.slice(2, -2).trim()
+      if (!arrayName) throw new TomlParseError('空的表数组名', lineNo)
 
-      const pathParts = arrayName.split('.').map(s => s.trim());
-      if (pathParts.some(p => !p)) throw new TomlParseError('无效的表数组路径', lineNo);
+      const pathParts = arrayName.split('.').map((s) => s.trim())
+      if (pathParts.some((p) => !p)) throw new TomlParseError('无效的表数组路径', lineNo)
 
-      currentPath = pathParts;
-      current = root;
+      currentPath = pathParts
+      current = root
 
       for (let j = 0; j < pathParts.length; j++) {
-        const part = pathParts[j];
+        const part = pathParts[j]
         if (j === pathParts.length - 1) {
           // 最后一级：确保是数组，并推入一个新对象
-          if (!Array.isArray(current[part])) current[part] = [];
-          const newEntry = {};
-          current[part].push(newEntry);
-          current = newEntry;
+          if (!Array.isArray(current[part])) current[part] = []
+          const newEntry = {}
+          current[part].push(newEntry)
+          current = newEntry
         } else {
           // 中间级：确保是对象
           if (current[part] === undefined || typeof current[part] !== 'object' || Array.isArray(current[part])) {
-            current[part] = {};
+            current[part] = {}
           }
-          current = current[part];
+          current = current[part]
         }
       }
-      continue;
+      continue
     }
 
     // 4. 处理普通节 [section]
     if (line.startsWith('[') && line.endsWith(']')) {
-      const sectionName = line.slice(1, -1).trim();
-      if (!sectionName) throw new TomlParseError('空的节名', lineNo);
+      const sectionName = line.slice(1, -1).trim()
+      if (!sectionName) throw new TomlParseError('空的节名', lineNo)
 
-      currentPath = sectionName.split('.').map(s => s.trim());
-      if (currentPath.some(p => !p)) throw new TomlParseError('无效的节路径', lineNo);
+      currentPath = sectionName.split('.').map((s) => s.trim())
+      if (currentPath.some((p) => !p)) throw new TomlParseError('无效的节路径', lineNo)
 
-      current = root;
+      current = root
       for (const key of currentPath) {
         if (current[key] === undefined || typeof current[key] !== 'object' || Array.isArray(current[key])) {
-          current[key] = {};
+          current[key] = {}
         }
-        current = current[key];
+        current = current[key]
       }
-      continue;
+      continue
     }
 
     // 5. 处理键值对 key = value
-    const eqIdx = findUnquotedChar(line, '=');
+    const eqIdx = findUnquotedChar(line, '=')
     if (eqIdx < 0) {
       // 如果依然找不到等号，说明这行既不是注释也不是合法配置，直接跳过或报错
       // 为了健壮性，这里选择跳过非法行并警告，而不是直接崩溃
-      console.warn(`TOML 第 ${lineNo} 行格式异常，已跳过: ${line}`);
-      continue;
+      console.warn(`TOML 第 ${lineNo} 行格式异常，已跳过: ${line}`)
+      continue
     }
 
-    const key = line.slice(0, eqIdx).trim();
-    const rawVal = line.slice(eqIdx + 1).trim();
+    const key = line.slice(0, eqIdx).trim()
+    const rawVal = line.slice(eqIdx + 1).trim()
 
-    if (!isValidKey(key)) throw new TomlParseError(`非法键名：${key}`, lineNo);
-    if (!rawVal) throw new TomlParseError(`键 ${key} 缺少值`, lineNo);
+    if (!isValidKey(key)) throw new TomlParseError(`非法键名：${key}`, lineNo)
+    if (!rawVal) throw new TomlParseError(`键 ${key} 缺少值`, lineNo)
 
-    current[key] = parseValue(rawVal, lineNo);
+    current[key] = parseValue(rawVal, lineNo)
   }
 
-  return root;
+  return root
 }
 
 function stripComment(line) {
@@ -119,7 +119,10 @@ function stripComment(line) {
   for (let i = 0; i < line.length; i++) {
     const ch = line[i]
     if (inStr) {
-      if (ch === '\\' && inStr === '"') { i++; continue }
+      if (ch === '\\' && inStr === '"') {
+        i++
+        continue
+      }
       if (ch === inStr) inStr = null
     } else {
       if (ch === '"' || ch === "'") inStr = ch
@@ -134,7 +137,10 @@ function findUnquotedChar(line, ch) {
   for (let i = 0; i < line.length; i++) {
     const c = line[i]
     if (inStr) {
-      if (c === '\\' && inStr === '"') { i++; continue }
+      if (c === '\\' && inStr === '"') {
+        i++
+        continue
+      }
       if (c === inStr) inStr = null
     } else {
       if (c === '"' || c === "'") inStr = c
@@ -196,15 +202,14 @@ function parseDoubleQuotedString(v, lineNo) {
   if (!v.endsWith('"') || v.length < 2) throw new TomlParseError('字符串未闭合', lineNo)
   const inner = v.slice(1, -1)
   // 处理转义
-  return inner.replace(/\\([nrtbf"\\])|\\u([0-9a-fA-F]{4})|\\U([0-9a-fA-F]{8})/g,
-    (m, esc, u4, u8) => {
-      if (esc) {
-        return { n: '\n', r: '\r', t: '\t', b: '\b', f: '\f', '"': '"', '\\': '\\' }[esc]
-      }
-      if (u4) return String.fromCharCode(parseInt(u4, 16))
-      if (u8) return String.fromCodePoint(parseInt(u8, 16))
-      return m
-    })
+  return inner.replace(/\\([nrtbf"\\])|\\u([0-9a-fA-F]{4})|\\U([0-9a-fA-F]{8})/g, (m, esc, u4, u8) => {
+    if (esc) {
+      return { n: '\n', r: '\r', t: '\t', b: '\b', f: '\f', '"': '"', '\\': '\\' }[esc]
+    }
+    if (u4) return String.fromCharCode(parseInt(u4, 16))
+    if (u8) return String.fromCodePoint(parseInt(u8, 16))
+    return m
+  })
 }
 
 function parseSingleQuotedString(v, lineNo) {
@@ -215,15 +220,23 @@ function parseSingleQuotedString(v, lineNo) {
 function splitTopLevel(str, sep) {
   // 按 sep 分隔，但忽略 [] {} "" '' 内部的 sep
   const out = []
-  let depth = 0, inStr = null, start = 0
+  let depth = 0,
+    inStr = null,
+    start = 0
   for (let i = 0; i < str.length; i++) {
     const c = str[i]
     if (inStr) {
-      if (c === '\\' && inStr === '"') { i++; continue }
+      if (c === '\\' && inStr === '"') {
+        i++
+        continue
+      }
       if (c === inStr) inStr = null
       continue
     }
-    if (c === '"' || c === "'") { inStr = c; continue }
+    if (c === '"' || c === "'") {
+      inStr = c
+      continue
+    }
     if (c === '[' || c === '{') depth++
     else if (c === ']' || c === '}') depth--
     else if (c === sep && depth === 0) {
@@ -258,7 +271,10 @@ function parseArray(v, lineNo) {
   const inner = v.slice(1, -1).trim()
   if (!inner) return []
   const parts = splitTopLevel(inner, ',')
-  return parts.map(p => p.trim()).filter(p => p).map(p => parseValue(p, lineNo))
+  return parts
+    .map((p) => p.trim())
+    .filter((p) => p)
+    .map((p) => parseValue(p, lineNo))
 }
 
 /* ------------------------- 序列化 ------------------------- */
@@ -345,14 +361,15 @@ export function flattenToml(obj, prefix = '') {
       let val = v
       if (typeof v === 'boolean') type = 'boolean'
       else if (typeof v === 'number') type = 'number'
-      else if (Array.isArray(v)) { type = 'string'; val = v.map(x => String(x)).join(',') }
-      else val = v == null ? '' : String(v)
+      else if (Array.isArray(v)) {
+        type = 'string'
+        val = v.map((x) => String(x)).join(',')
+      } else val = v == null ? '' : String(v)
       rows.push({ keyPath: path, key: k, value: val, type })
     }
   }
   return rows
 }
-
 
 /**
  * 把表格修改后的扁平列表还原为嵌套对象，交给 stringifyToml 输出。

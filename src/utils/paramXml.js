@@ -141,7 +141,7 @@ function collectParams(parentEl, groupName, out) {
 
     const name = child.getAttribute('name') || ''
     // 无名节点跳过；同名节点以先出现的为准，否则表格里两行会互相覆盖
-    if (!name || out.some(p => p.name === name)) continue
+    if (!name || out.some((p) => p.name === name)) continue
 
     // 值可能写在 value 属性上，也可能写在 <value> 子标签里；
     // hasValueAttr 记下来，序列化时才能写回原处（写错地方会让飞控读到旧值）
@@ -149,9 +149,7 @@ function collectParams(parentEl, groupName, out) {
     let value = hasValueAttr ? child.getAttribute('value') : null
     if (value === null || value === undefined) {
       const valueChild = child.querySelector('value')
-      value = valueChild
-          ? String(valueChild.textContent || '').trim()
-          : String(child.textContent || '').trim()
+      value = valueChild ? String(valueChild.textContent || '').trim() : String(child.textContent || '').trim()
     }
 
     const type = String(child.getAttribute('type') || inferType(value)).toUpperCase()
@@ -180,7 +178,14 @@ function inferType(v) {
 function autoCast(v, type) {
   if (v === null || v === undefined) return ''
   const s = String(v)
-  if (type === 'INT32' || type === 'INT16' || type === 'INT8' || type === 'UINT32' || type === 'UINT16' || type === 'UINT8') {
+  if (
+    type === 'INT32' ||
+    type === 'INT16' ||
+    type === 'INT8' ||
+    type === 'UINT32' ||
+    type === 'UINT16' ||
+    type === 'UINT8'
+  ) {
     const n = parseInt(s, 10)
     return Number.isFinite(n) ? n : 0
   }
@@ -244,7 +249,7 @@ function formatValue(v, type) {
     return String(n)
   }
   if (type === 'BOOL' || type === 'BOOLEAN') {
-    return (v === true || v === 'true' || v === '1' || v === 1) ? 'true' : 'false'
+    return v === true || v === 'true' || v === '1' || v === 1 ? 'true' : 'false'
   }
   return String(v)
 }

@@ -143,8 +143,8 @@ export const useFcConfigStore = defineStore('fcconfig', () => {
       st.crc32Hex = ''
       st.hasBom = false
       st.error = /不存在|not found|no such|ENOENT|ErrCode\s*\(?\s*2\b|2\s*\(no such/i.test(msg)
-          ? `飞控上没有 ${f.remote}`
-          : msg
+        ? `飞控上没有 ${f.remote}`
+        : msg
       return { ok: false, error: st.error }
     } finally {
       st.loading = false
@@ -179,7 +179,9 @@ export const useFcConfigStore = defineStore('fcconfig', () => {
         results[f.key] = await pullOne(l, f)
         if (results[f.key].ok) okCount++
       }
-      const errors = FILES.map((f) => results[f.key]).filter((r) => !r.ok).map((r) => r.error)
+      const errors = FILES.map((f) => results[f.key])
+        .filter((r) => !r.ok)
+        .map((r) => r.error)
       lastPullError.value = errors.join('；')
       status.value = okCount === FILES.length ? 'ready' : okCount ? 'partial' : 'error'
       lastPullAt.value = Date.now()
@@ -218,7 +220,7 @@ export const useFcConfigStore = defineStore('fcconfig', () => {
     const doc = docs.value[key]
     const st = files.value[key]
     const changes = doc ? doc.changes() : []
-    const metadata = doc ? (reviewMetadata.get(doc) || []) : []
+    const metadata = doc ? reviewMetadata.get(doc) || [] : []
     while (metadata.length < changes.length) metadata.push({ changeId: nextChangeId++, source: editSource })
     metadata.length = changes.length
     if (doc) reviewMetadata.set(doc, metadata)
@@ -440,15 +442,13 @@ export const useFcConfigStore = defineStore('fcconfig', () => {
     const allOk = !blocked.length && targets.every((f) => results[f.key]?.ok)
     const notes = []
     if (results.sysconfig?.ok) notes.push('sysconfig.toml 已写入飞控文件，但固件只在开机时读它——重启飞控后才生效')
-    if (results.param?.ok) notes.push('param.xml 已写入飞控文件；若之后在飞控上执行 param save，会用内存里的值覆盖这份文件')
+    if (results.param?.ok)
+      notes.push('param.xml 已写入飞控文件；若之后在飞控上执行 param save，会用内存里的值覆盖这份文件')
     // 闸门放行但有警告的（缩短 2%~10%），也把数字留在结果里，别让它悄悄过去
     notes.push(...plan.warns.map((w) => w.warn))
     lastUploadNote.value = notes.join('；')
     status.value = allOk ? 'ready' : 'error'
-    const errs = [
-      ...targets.map((f) => results[f.key]?.error).filter(Boolean),
-      ...blocked.map((b) => b.reason),
-    ]
+    const errs = [...targets.map((f) => results[f.key]?.error).filter(Boolean), ...blocked.map((b) => b.reason)]
     return { ok: allOk, results, blocked, warns: plan.warns.map((w) => w.warn), notes, error: errs.join('；') }
   }
 
@@ -458,10 +458,21 @@ export const useFcConfigStore = defineStore('fcconfig', () => {
     const base = { ok: false, ready: false, code: '', error: '', allowed: [], blocked: [], warns: [], byKey: {} }
     if (!isOnline(l)) return { ...base, code: 'not-connected', error: '飞控未连接，不能保存' }
     if (busy.value) return { ...base, code: 'busy', error: '正在忙，请等当前保存结束' }
-    if (l.canWrite?.value !== true) return { ...base, code: 'not-writable', error: '当前连接不允许写入，请确认心跳正常且飞控未解锁' }
+    if (l.canWrite?.value !== true)
+      return { ...base, code: 'not-writable', error: '当前连接不允许写入，请确认心跳正常且飞控未解锁' }
     const rows = []
     if (files.value.param.dirty) {
-      const row = { key: 'param', label: 'param.xml', remote: REMOTE_FILES.param, method: 'param-save', allowed: false, code: 'parameter-save-blocked', reason: '', warn: '', changeCount: 0 }
+      const row = {
+        key: 'param',
+        label: 'param.xml',
+        remote: REMOTE_FILES.param,
+        method: 'param-save',
+        allowed: false,
+        code: 'parameter-save-blocked',
+        reason: '',
+        warn: '',
+        changeCount: 0,
+      }
       try {
         if (!files.value.param.loaded || !files.value.param.present) throw new Error('参数尚未完整下载')
         if (typeof l.session?.withTransaction !== 'function') throw new Error('控制台缺少独占事务能力，禁止参数保存')
@@ -471,36 +482,74 @@ export const useFcConfigStore = defineStore('fcconfig', () => {
         row.changeCount = targets.length
         row.allowed = true
         row.code = 'ok'
-      } catch (e) { row.reason = e.message }
+      } catch (e) {
+        row.reason = e.message
+      }
       rows.push(row)
     }
-    if (files.value.sysconfig.dirty) rows.push(gateFor('sysconfig', byteLengthOf('sysconfig'), files.value.sysconfig.changes.length, opts))
+    if (files.value.sysconfig.dirty)
+      rows.push(gateFor('sysconfig', byteLengthOf('sysconfig'), files.value.sysconfig.changes.length, opts))
     if (!rows.length) return { ...base, code: 'nothing-to-save', error: '没有待保存的改动' }
-    const blocked = rows.filter(r => !r.allowed), allowed = rows.filter(r => r.allowed)
-    return { byKey: Object.fromEntries(rows.map(r => [r.key, r])), allowed, blocked, warns: allowed.filter(r => r.warn), ok: !blocked.length, ready: !blocked.length && !!allowed.length, code: blocked[0]?.code || 'ok', error: blocked.map(r => r.reason).join('；') }
+    const blocked = rows.filter((r) => !r.allowed),
+      allowed = rows.filter((r) => r.allowed)
+    return {
+      byKey: Object.fromEntries(rows.map((r) => [r.key, r])),
+      allowed,
+      blocked,
+      warns: allowed.filter((r) => r.warn),
+      ok: !blocked.length,
+      ready: !blocked.length && !!allowed.length,
+      code: blocked[0]?.code || 'ok',
+      error: blocked.map((r) => r.reason).join('；'),
+    }
   }
 
   async function saveAll(opts = {}) {
     const l = resolveLink(opts.link)
     const plan = previewSave({ ...opts, link: l })
-    if (!plan.ready) return { ok: false, needsReboot: false, reason: plan.code, error: plan.error, results: {}, blocked: plan.blocked, warns: [], notes: [] }
+    if (!plan.ready)
+      return {
+        ok: false,
+        needsReboot: false,
+        reason: plan.code,
+        error: plan.error,
+        results: {},
+        blocked: plan.blocked,
+        warns: [],
+        notes: [],
+      }
     const session = l.session
     const sessionId = l.deviceState?.sessionId
     const generation = saveGeneration
-    const results = {}, notes = []
+    const results = {},
+      notes = []
     const assertCurrent = () => {
-      if (!isOnline(l) || l.canWrite?.value !== true || l.session !== session || l.deviceState?.sessionId !== sessionId || saveGeneration !== generation) throw new Error('连接或写入权限已变化，保存中止；保留本地改动')
+      if (
+        !isOnline(l) ||
+        l.canWrite?.value !== true ||
+        l.session !== session ||
+        l.deviceState?.sessionId !== sessionId ||
+        saveGeneration !== generation
+      )
+        throw new Error('连接或写入权限已变化，保存中止；保留本地改动')
     }
     busy.value = 'uploading'
     status.value = 'uploading'
     lastUploadNote.value = ''
     let activeKey = plan.byKey.param ? 'param' : 'sysconfig'
     try {
-      const sequence = async tx => {
+      const sequence = async (tx) => {
         assertCurrent()
         if (plan.byKey.param) {
           activeKey = 'param'
-          const saved = await saveParameters({ tx, ftp: l.ftp, targets: plan.byKey.param.targets, assertCurrent, onStage: opts.onStage, timeoutMs: opts.timeoutMs })
+          const saved = await saveParameters({
+            tx,
+            ftp: l.ftp,
+            targets: plan.byKey.param.targets,
+            assertCurrent,
+            onStage: opts.onStage,
+            timeoutMs: opts.timeoutMs,
+          })
           assertCurrent()
           // 只能用实际落盘回读作为新基线，不能把本地序列化当成固件文件。
           docs.value = Object.assign(Object.create(null), docs.value, { param: markRaw(saved.doc) })
@@ -519,17 +568,30 @@ export const useFcConfigStore = defineStore('fcconfig', () => {
           assertCurrent()
           const bytes = serialize('sysconfig')
           opts.onStage?.({ key: 'sysconfig', stage: 'uploading' })
-          const r = await l.ftp.upload(bytes, REMOTE_FILES.sysconfig, { verify: 'crc', onProgress: p => {
-            opts.onProgress?.({ key: 'sysconfig', progress: p })
-            if (p >= 1) opts.onStage?.({ key: 'sysconfig', stage: 'verifying' })
-          } })
+          const r = await l.ftp.upload(bytes, REMOTE_FILES.sysconfig, {
+            verify: 'crc',
+            onProgress: (p) => {
+              opts.onProgress?.({ key: 'sysconfig', progress: p })
+              if (p >= 1) opts.onStage?.({ key: 'sysconfig', stage: 'verifying' })
+            },
+          })
           assertCurrent()
           if (!uploadEvidence(r)) throw new Error('未取得 sysconfig 完整回读 CRC32 一致的证据，保留本地改动')
-          docs.value = Object.assign(Object.create(null), docs.value, { sysconfig: markRaw(parseTomlDoc(requireDoc('sysconfig').text())) })
+          docs.value = Object.assign(Object.create(null), docs.value, {
+            sysconfig: markRaw(parseTomlDoc(requireDoc('sysconfig').text())),
+          })
           files.value.sysconfig.size = r.size
           files.value.sysconfig.crc32Hex = r.crc32Hex
           files.value.sysconfig.error = ''
-          results.sysconfig = { ok: true, verified: true, remote: REMOTE_FILES.sysconfig, size: r.size, localCrc32: r.crc32Hex, remoteCrc32: r.remoteCrc32Hex, verifyMode: r.verifyMode }
+          results.sysconfig = {
+            ok: true,
+            verified: true,
+            remote: REMOTE_FILES.sysconfig,
+            size: r.size,
+            localCrc32: r.crc32Hex,
+            remoteCrc32: r.remoteCrc32Hex,
+            verifyMode: r.verifyMode,
+          }
           afterEdit('sysconfig')
           opts.onStage?.({ key: 'sysconfig', stage: 'verified' })
           notes.push('sysconfig.toml 已校验写入，需重启飞控后生效')
@@ -546,12 +608,15 @@ export const useFcConfigStore = defineStore('fcconfig', () => {
     } finally {
       busy.value = ''
     }
-    const ok = plan.allowed.every(row => results[row.key]?.ok) && !hasChanges.value
+    const ok = plan.allowed.every((row) => results[row.key]?.ok) && !hasChanges.value
     const needsReboot = ok && results.sysconfig?.ok === true
-    const error = Object.values(results).filter(r => !r.ok).map(r => r.error).join('；')
+    const error = Object.values(results)
+      .filter((r) => !r.ok)
+      .map((r) => r.error)
+      .join('；')
     lastUploadNote.value = notes.join('；')
     status.value = ok ? 'ready' : 'error'
-    return { ok, needsReboot, results, blocked: plan.blocked, warns: plan.warns.map(r => r.warn), notes, error }
+    return { ok, needsReboot, results, blocked: plan.blocked, warns: plan.warns.map((r) => r.warn), notes, error }
   }
 
   /** 逐项还原当前审阅行；changeId 可拒绝索引重排后的过期行。 */
@@ -562,9 +627,12 @@ export const useFcConfigStore = defineStore('fcconfig', () => {
     const doc = requireDoc(f.key)
     const index = row?.changeIndex
     const current = files.value[f.key].changes[index]
-    if (!Number.isInteger(index) || !current ||
-        (row.changeId !== undefined && row.changeId !== current.changeId) ||
-        ['op', 'where', 'from', 'to'].some((key) => row[key] !== undefined && row[key] !== current[key])) {
+    if (
+      !Number.isInteger(index) ||
+      !current ||
+      (row.changeId !== undefined && row.changeId !== current.changeId) ||
+      ['op', 'where', 'from', 'to'].some((key) => row[key] !== undefined && row[key] !== current[key])
+    ) {
       throw new Error('此审阅行已失效，请刷新审阅列表后重试')
     }
     doc.revertChange(index)
@@ -605,11 +673,20 @@ export const useFcConfigStore = defineStore('fcconfig', () => {
 
   const changeList = computed(() => {
     revision.value
-    return FILES.flatMap((f) => files.value[f.key].changes.map((c, changeIndex) => ({ ...c, file: f.label, changeIndex, source: c.source || '其他配置' })))
+    return FILES.flatMap((f) =>
+      files.value[f.key].changes.map((c, changeIndex) => ({
+        ...c,
+        file: f.label,
+        changeIndex,
+        source: c.source || '其他配置',
+      }))
+    )
   })
 
   const loaded = computed(() => FILES.every((f) => files.value[f.key].loaded))
-  const busyLabel = computed(() => (busy.value === 'pulling' ? '正在读取飞控配置' : busy.value === 'uploading' ? '正在保存' : ''))
+  const busyLabel = computed(() =>
+    busy.value === 'pulling' ? '正在读取飞控配置' : busy.value === 'uploading' ? '正在保存' : ''
+  )
 
   /* ---------- 连接即拉取 ---------- */
 
@@ -636,13 +713,13 @@ export const useFcConfigStore = defineStore('fcconfig', () => {
 
     mav.on('HEARTBEAT', onHeartbeat)
     const stop = watch(
-        () => mav.connected?.value,
-        (v) => {
-          if (!v) {
-            armed = false
-            reset()
-          }
-        },
+      () => mav.connected?.value,
+      (v) => {
+        if (!v) {
+          armed = false
+          reset()
+        }
+      }
     )
     detachHandlers = () => {
       mav.off?.('HEARTBEAT', onHeartbeat)

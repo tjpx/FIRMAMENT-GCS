@@ -23,9 +23,7 @@ const pinia = createPinia()
 // 把 Vue 的挂载/卸载流程打断——用户看到的就是"点了导航没反应"，而且原因只在
 // console 里一闪而过。这里统一接住：说明是哪个组件、哪个阶段，并给出可见提示。
 app.config.errorHandler = (err, instance, info) => {
-  const name = instance?.$?.type?.__name
-    || instance?.$options?.name
-    || '匿名组件'
+  const name = instance?.$?.type?.__name || instance?.$options?.name || '匿名组件'
   console.error(`[FIRMAMENT GCS] 组件「${name}」在 ${info} 阶段抛出异常：`, err)
   ElMessage.error(`页面「${name}」出错（${info}）：${err?.message ?? err}`)
 }
@@ -36,7 +34,9 @@ app.config.errorHandler = (err, instance, info) => {
 let reloadingForChunkLoss = false
 const isChunkLoadFailure = (e) => {
   const msg = String(e?.message ?? e ?? '')
-  return /dynamically imported module|importing a module script failed|failed to fetch|error loading dynamically/i.test(msg)
+  return /dynamically imported module|importing a module script failed|failed to fetch|error loading dynamically/i.test(
+    msg
+  )
 }
 router.onError((err, to) => {
   console.error('[FIRMAMENT GCS] 页面切换失败：', err)

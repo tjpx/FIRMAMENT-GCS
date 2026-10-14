@@ -19,9 +19,13 @@ export const useConfigLeaveStore = defineStore('config-leave', () => {
     settle(false)
     target.value = destination
     visible.value = true
-    return new Promise((resolve) => { resolvePending = resolve })
+    return new Promise((resolve) => {
+      resolvePending = resolve
+    })
   }
 
-  function reviewing() { visible.value = false }
+  function reviewing() {
+    visible.value = false
+  }
   return { visible, target, request, settle, reviewing }
 })

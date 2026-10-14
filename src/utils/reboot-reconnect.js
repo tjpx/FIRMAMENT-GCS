@@ -6,18 +6,16 @@ export function rebootError(code, message) {
 // USB 型号并非唯一身份：优先此前同一个已授权对象，否则只允许唯一型号匹配。
 export function selectAuthorizedPort(ports, previous, info = {}) {
   if (ports.includes(previous)) return previous
-  const keys = ['usbVendorId', 'usbProductId', 'bluetoothServiceClassId'].filter(k => info[k] != null)
+  const keys = ['usbVendorId', 'usbProductId', 'bluetoothServiceClassId'].filter((k) => info[k] != null)
   if (!keys.length) return null
-  const matches = ports.filter(port => {
+  const matches = ports.filter((port) => {
     const next = port.getInfo()
-    return keys.every(k => next[k] === info[k])
+    return keys.every((k) => next[k] === info[k])
   })
   return matches.length === 1 ? matches[0] : null
 }
 
-export function createRebootReconnect(io, {
-  timeoutMs = 30000, gapMs = 3500, retryMs = 500,
-} = {}) {
+export function createRebootReconnect(io, { timeoutMs = 30000, gapMs = 3500, retryMs = 500 } = {}) {
   let active = null
   function cancel() {
     active?.abort.abort(rebootError('RECONNECT_CANCELLED', '自动重连已取消'))
@@ -28,32 +26,54 @@ export function createRebootReconnect(io, {
     const abort = new AbortController()
     active = { abort }
     let timer, waitTimer, unsubscribe
-    const stage = value => {
+    const stage = (value) => {
       io.setStage(value)
-      try { onStage?.(value) } catch { /* 界面回调不影响安全流程 */ }
+      try {
+        onStage?.(value)
+      } catch {
+        /* 界面回调不影响安全流程 */
+      }
     }
     const signal = abort.signal
     // 所有等待（写入、打开、获取授权端口）共享取消信号和总时限。
-    const bounded = promise => new Promise((resolve, reject) => {
-      const stop = () => reject(signal.reason)
-      if (signal.aborted) return stop()
-      signal.addEventListener('abort', stop, { once: true })
-      Promise.resolve(promise).then(resolve, reject).finally(() => signal.removeEventListener('abort', stop))
-    })
-    const sleep = () => bounded(new Promise(resolve => { waitTimer = setTimeout(resolve, retryMs) }))
-    let sentAt = 0, lastAt = 0, evidence = false, fresh = false
+    const bounded = (promise) =>
+      new Promise((resolve, reject) => {
+        const stop = () => reject(signal.reason)
+        if (signal.aborted) return stop()
+        signal.addEventListener('abort', stop, { once: true })
+        Promise.resolve(promise)
+          .then(resolve, reject)
+          .finally(() => signal.removeEventListener('abort', stop))
+      })
+    const sleep = () =>
+      bounded(
+        new Promise((resolve) => {
+          waitTimer = setTimeout(resolve, retryMs)
+        })
+      )
+    let sentAt = 0,
+      lastAt = 0,
+      evidence = false,
+      fresh = false
     try {
       const target = io.capture()
       // 发送前订阅，避免漏掉快速 USB 失联。
-      unsubscribe = io.subscribe(event => {
-        if (event.type === 'lost') { evidence = true; return }
-        if (event.type !== 'heartbeat' || !sentAt || event.sysid !== target.sysid || event.compid !== target.compid) return
+      unsubscribe = io.subscribe((event) => {
+        if (event.type === 'lost') {
+          evidence = true
+          return
+        }
+        if (event.type !== 'heartbeat' || !sentAt || event.sysid !== target.sysid || event.compid !== target.compid)
+          return
         const at = event.at
         if (at - Math.max(lastAt, sentAt) >= gapMs) evidence = true
         if (evidence && at >= sentAt) fresh = true
         lastAt = at
       })
-      timer = setTimeout(() => abort.abort(rebootError('RECONNECT_TIMEOUT', '重启后未在限时内确认新的飞控心跳')), timeoutMs)
+      timer = setTimeout(
+        () => abort.abort(rebootError('RECONNECT_TIMEOUT', '重启后未在限时内确认新的飞控心跳')),
+        timeoutMs
+      )
       io.setActive(true)
       stage('sending-reboot')
       await bounded(io.sendReboot(signal)) // 必须等待 writer.write 完成，入队不算发出。

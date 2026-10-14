@@ -1,5 +1,4 @@
 // 分发地址暂未配置；后续清单按机架、板型和版本匹配，不根据文件名猜兼容性。
-export const FIRMWARE_DISTRIBUTION_URL = null
 export const FIRMWARE_AIRFRAMES = Object.freeze([
   { value: 'multicopter', label: '多旋翼' },
   { value: 'fixedwing', label: '固定翼' },

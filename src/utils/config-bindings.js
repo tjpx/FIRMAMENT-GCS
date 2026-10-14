@@ -169,15 +169,34 @@ export function labelOf(name) {
   if (WHOLE[name]) return WHOLE[name]
   const rc = /^RC(\d+)_(MIN|MAX|REV|TRIM)$/.exec(name)
   if (rc) return `通道 ${rc[1]} · ${RC_SUFFIX[rc[2]]}`
-  return name.split('_').map((w) => WORDS[w] || (/^\d+$/.test(w) ? `通道 ${w}` : w)).join(' ')
+  return name
+    .split('_')
+    .map((w) => WORDS[w] || (/^\d+$/.test(w) ? `通道 ${w}` : w))
+    .join(' ')
 }
 
 /** 某个组已写好的归类规则。新页面（接收机 RC 组、传感器 INS 组）在这里加规则，不要往界面里写。 */
 const CONTROL_SEMANTIC_RULES = [
-  { card: 'rate-limits', test: (n) => /(?:RATE|ANGULAR|GYRO).*(?:MIN|MAX|LIM)|(?:MIN|MAX|LIM).*(?:RATE|ANGULAR|GYRO)/i.test(n) },
-  { card: 'vel-limits', test: (n) => /(?:VEL|VELOC|SPEED|POS|ALT|HEIGHT).*(?:MIN|MAX|LIM)|(?:MIN|MAX|LIM).*(?:VEL|VELOC|SPEED|POS|ALT|HEIGHT)/i.test(n) },
-  { card: 'rate', test: (n) => /(?:RATE|ANGULAR|GYRO|ROLL|PITCH|YAW).*(?:P|I|D|FF)|(?:P|I|D|FF).*(?:RATE|ANGULAR|GYRO)/i.test(n) },
-  { card: 'angle', test: (n) => /(?:ANGLE|ATTITUDE|STAB|STABILIZE).*(?:P|I|D|FF)|(?:P|I|D|FF).*(?:ANGLE|ATTITUDE|STAB|STABILIZE)/i.test(n) },
+  {
+    card: 'rate-limits',
+    test: (n) => /(?:RATE|ANGULAR|GYRO).*(?:MIN|MAX|LIM)|(?:MIN|MAX|LIM).*(?:RATE|ANGULAR|GYRO)/i.test(n),
+  },
+  {
+    card: 'vel-limits',
+    test: (n) =>
+      /(?:VEL|VELOC|SPEED|POS|ALT|HEIGHT).*(?:MIN|MAX|LIM)|(?:MIN|MAX|LIM).*(?:VEL|VELOC|SPEED|POS|ALT|HEIGHT)/i.test(
+        n
+      ),
+  },
+  {
+    card: 'rate',
+    test: (n) => /(?:RATE|ANGULAR|GYRO|ROLL|PITCH|YAW).*(?:P|I|D|FF)|(?:P|I|D|FF).*(?:RATE|ANGULAR|GYRO)/i.test(n),
+  },
+  {
+    card: 'angle',
+    test: (n) =>
+      /(?:ANGLE|ATTITUDE|STAB|STABILIZE).*(?:P|I|D|FF)|(?:P|I|D|FF).*(?:ANGLE|ATTITUDE|STAB|STABILIZE)/i.test(n),
+  },
   { card: 'position', test: (n) => /(?:POS|POSITION|VEL|VELOC|SPEED|ALT|HEIGHT)/i.test(n) },
 ]
 
@@ -196,19 +215,9 @@ export function cardOf(group, name) {
   return OTHER
 }
 
-/** 某个名字落在哪张卡（PID 页常用） */
-export function cardOfControl(name) {
-  return cardOf('CONTROL', name)
-}
-
 /** 页面要渲染的卡片清单（含兜底卡） */
-export function cardsFor(group) {
+function cardsFor(group) {
   return [...rulesFor(group).map(({ test, ...rest }) => rest), otherCard(group)] // eslint-disable-line no-unused-vars
-}
-
-/** 兼容旧名字：PID 页的卡清单 */
-export function controlCards() {
-  return cardsFor('CONTROL')
 }
 
 /**
@@ -227,7 +236,7 @@ export function mapGroupToCards(doc, group = 'CONTROL') {
 }
 
 /** 一条参数 → 界面用的一行 */
-export function toItem(entry) {
+function toItem(entry) {
   return {
     name: entry.name,
     label: labelOf(entry.name),
@@ -252,7 +261,8 @@ export function validateParamInput(item, input, sibling) {
   if (item.kind === KIND.STRING) return { ok: true, value: text }
   const n = Number(text)
   if (!Number.isFinite(n)) return { ok: false, message: `${item.name} 要填数字，「${text}」不是` }
-  if (Math.abs(n) > 1e9) return { ok: false, message: `${item.name} 填的 ${text} 超出常理（|值|>1e9），先确认是不是多写了零` }
+  if (Math.abs(n) > 1e9)
+    return { ok: false, message: `${item.name} 填的 ${text} 超出常理（|值|>1e9），先确认是不是多写了零` }
   if (item.kind === KIND.INT && !Number.isInteger(n)) {
     return {
       ok: false,
@@ -263,8 +273,10 @@ export function validateParamInput(item, input, sibling) {
     const other = sibling(item.pair)
     if (typeof other === 'number' && Number.isFinite(other)) {
       const isMin = /_MIN$/.test(item.name)
-      if (isMin && n > other) return { ok: false, message: `${item.name} 不能大于 ${item.pair}（当前 ${other}）：下限写在上限之上` }
-      if (!isMin && n < other) return { ok: false, message: `${item.name} 不能小于 ${item.pair}（当前 ${other}）：上限写在下限之下` }
+      if (isMin && n > other)
+        return { ok: false, message: `${item.name} 不能大于 ${item.pair}（当前 ${other}）：下限写在上限之上` }
+      if (!isMin && n < other)
+        return { ok: false, message: `${item.name} 不能小于 ${item.pair}（当前 ${other}）：上限写在下限之下` }
     }
   }
   if (/^RC\d+_REV$/.test(item.name) && n !== 1 && n !== -1) {
@@ -312,28 +324,44 @@ export const PILOT_DEVICE = 'pilot-cmd.device'
 
 export const PILOT_DEVICE_FIELDS = [
   {
-    key: 'type', label: '输入源类型', kind: 'enum', valueType: 'string', options: RC_DEVICE_TYPE_OPTIONS, values: RC_DEVICE_TYPE_OPTIONS.map((item) => item.value),
+    key: 'type',
+    label: '输入源类型',
+    kind: 'enum',
+    valueType: 'string',
+    options: RC_DEVICE_TYPE_OPTIONS,
+    values: RC_DEVICE_TYPE_OPTIONS.map((item) => item.value),
     hint: '固件只支持 "rc"：pilot_cmd_config.c:427 判 type=="rc"，否则 LOG_E("only rc device is supported in pilot-cmd table")（:457-461）',
   },
-  { key: 'name', label: '设备名', kind: 'text', hint: '样例里是 "rc"（hal/rc 注册的设备名，fmtio.c:451 hal_rc_register(&rc_dev, "rc", ...)）；写回时字符串带引号，与原文一致' },
   {
-    key: 'protocol', label: '接收机协议', kind: 'enum', valueType: 'string', options: RECEIVER_PROTOCOL_OPTIONS, values: RECEIVER_PROTOCOL_OPTIONS.map((item) => item.value), allowUnknown: true,
+    key: 'name',
+    label: '设备名',
+    kind: 'text',
+    hint: '样例里是 "rc"（hal/rc 注册的设备名，fmtio.c:451 hal_rc_register(&rc_dev, "rc", ...)）；写回时字符串带引号，与原文一致',
+  },
+  {
+    key: 'protocol',
+    label: '接收机协议',
+    kind: 'enum',
+    valueType: 'string',
+    options: RECEIVER_PROTOCOL_OPTIONS,
+    values: RECEIVER_PROTOCOL_OPTIONS.map((item) => item.value),
+    allowUnknown: true,
     hint: '依据 pilot_cmd_config.c:467-475：只有 auto / sbus / ppm 三个字符串有分支，其余打印 "unknown rc protocol" 后忽略；界面显示中文，写回原始字符串',
   },
   {
-    key: 'channel-num', label: '通道数', kind: 'enum', valueType: 'int', options: CHANNEL_COUNT_OPTIONS, values: CHANNEL_COUNT_OPTIONS.map((item) => item.value), min: 1, max: 16, allowUnknown: true,
+    key: 'channel-num',
+    label: '通道数',
+    kind: 'enum',
+    valueType: 'int',
+    options: CHANNEL_COUNT_OPTIONS,
+    values: CHANNEL_COUNT_OPTIONS.map((item) => item.value),
+    min: 1,
+    max: 16,
+    allowUnknown: true,
     hint: '上限 16 的依据是 hal/rc/rc.c:50 的通道掩码是 uint16_t（(1 << channel_num) - 1），且 rc_param.c 只有 RC1~RC16；样例注释另说 ppm 实际只有 8 路',
   },
   { key: 'sample-time', label: '采样周期（秒）', kind: 'float', hint: '样例 0.05 = 20 Hz；注释说 -1 表示继承上级配置' },
   { key: 'range', label: '量程（µs）', kind: 'range', hint: '样例是 [1000,2000]，即接收机输出的 PWM 微秒范围' },
-]
-
-/** 摇杆四通道映射：注释给出顺序 [yaw, throttle, roll, pitch]，页面按这个顺序标，改错等于换杆 */
-export const STICK_CHANNELS = [
-  { index: 0, label: 'yaw（偏航）' },
-  { index: 1, label: 'throttle（油门）' },
-  { index: 2, label: 'roll（横滚）' },
-  { index: 3, label: 'pitch（俯仰）' },
 ]
 
 /**
@@ -351,10 +379,13 @@ export function validateStickChannel(input) {
       return { ok: false, message: '要写成 [4,3,1,2] 这样的四个通道号' }
     }
   }
-  if (!Array.isArray(value) || value.length !== 4) return { ok: false, message: 'stick-channel 必须是 4 个通道号，顺序是 [yaw, throttle, roll, pitch]' }
+  if (!Array.isArray(value) || value.length !== 4)
+    return { ok: false, message: 'stick-channel 必须是 4 个通道号，顺序是 [yaw, throttle, roll, pitch]' }
   const nums = value.map((v) => Number(v))
-  if (nums.some((n) => !Number.isInteger(n) || n < 1 || n > 18)) return { ok: false, message: '通道号要是 1~18 的整数（sbus 最多 16 路，ppm 8 路）' }
-  if (new Set(nums).size !== 4) return { ok: false, message: '四个轴映射到了同一个通道：' + nums.join(',') + '，这样杆量会互相踩' }
+  if (nums.some((n) => !Number.isInteger(n) || n < 1 || n > 18))
+    return { ok: false, message: '通道号要是 1~18 的整数（sbus 最多 16 路，ppm 8 路）' }
+  if (new Set(nums).size !== 4)
+    return { ok: false, message: '四个轴映射到了同一个通道：' + nums.join(',') + '，这样杆量会互相踩' }
   return { ok: true, value: nums }
 }
 
@@ -441,27 +472,75 @@ import {
 export { RC_DIRECTION_OPTIONS }
 
 export const PILOT_MODE_NOTE =
-    'FMT 飞行模式：0=无动作、1=手动、2=特技、3=自稳、4=定高、5=定点、6=任务、7=外部控制。'
-    + '编号来自固件 src/model/fms/*_fms/lib/FMS_types.h 的 PilotMode，六种机型定义一致；'
-    + '样例里三行依次注释为 mode = 5（Position mode）、4（Altitude mode）、3（Stabilize mode）。'
-    + '写 0 会被 gcs_cmd.c 的 gcs_set_mode() 拒绝（打印 "set Unknown mode 0" 返回 FMT_EINVAL）。'
-    + '模式分配属于高风险配置，改完请先在地面、不上桨验证。'
+  'FMT 飞行模式：0=无动作、1=手动、2=特技、3=自稳、4=定高、5=定点、6=任务、7=外部控制。' +
+  '编号来自固件 src/model/fms/*_fms/lib/FMS_types.h 的 PilotMode，六种机型定义一致；' +
+  '样例里三行依次注释为 mode = 5（Position mode）、4（Altitude mode）、3（Stabilize mode）。' +
+  '写 0 会被 gcs_cmd.c 的 gcs_set_mode() 拒绝（打印 "set Unknown mode 0" 返回 FMT_EINVAL）。' +
+  '模式分配属于高风险配置，改完请先在地面、不上桨验证。'
 export const PILOT_COMMAND_NOTE =
-    '指令表：0=无动作、1000=预解锁检查、1001=解锁、1002=上锁、1003=起飞、1004=降落、1005=返航、1006=暂停任务、1007=继续任务、2000=设置 Home 点。'
-    + '编号来自固件 FMS_types.h 的 FMS_Cmd，gcs_cmd.c 的 gcs_set_cmd() 只处理 1000~1007 与 2000，其余返回 FMT_ENOTHANDLE；'
-    + 'type = 1 表示 event、2 表示 status；cmd = 1002 的样例注释为 FMS_Cmd_Disarm；中文只用于显示，保存时写回原始整数。'
+  '指令表：0=无动作、1000=预解锁检查、1001=解锁、1002=上锁、1003=起飞、1004=降落、1005=返航、1006=暂停任务、1007=继续任务、2000=设置 Home 点。' +
+  '编号来自固件 FMS_types.h 的 FMS_Cmd，gcs_cmd.c 的 gcs_set_cmd() 只处理 1000~1007 与 2000，其余返回 FMT_ENOTHANDLE；' +
+  'type = 1 表示 event、2 表示 status；cmd = 1002 的样例注释为 FMS_Cmd_Disarm；中文只用于显示，保存时写回原始整数。'
 
 export const PILOT_MODES = FMT_MODE_OPTIONS
 export const PILOT_MODE_FIELDS = [
-  { key: 'mode', label: '飞行模式', kind: 'enum', valueType: 'int', options: PILOT_MODES, values: PILOT_MODES.map((m) => m.value), allowUnknown: true, hint: '编号来自固件 FMS_types.h 的 PilotMode（0~7）；中文只用于显示，保存时写回原始整数。写 0 飞控会拒绝' },
-  { key: 'channel', label: '拨的通道', kind: 'enum', valueType: 'int', options: RC_CHANNEL_OPTIONS, values: RC_CHANNEL_OPTIONS.map((m) => m.value), min: 1, max: 16, allowUnknown: true, hint: '上限 16 的依据：hal/rc/rc.c:50 通道掩码是 uint16_t，rc_param.c 只定义到 RC16' },
+  {
+    key: 'mode',
+    label: '飞行模式',
+    kind: 'enum',
+    valueType: 'int',
+    options: PILOT_MODES,
+    values: PILOT_MODES.map((m) => m.value),
+    allowUnknown: true,
+    hint: '编号来自固件 FMS_types.h 的 PilotMode（0~7）；中文只用于显示，保存时写回原始整数。写 0 飞控会拒绝',
+  },
+  {
+    key: 'channel',
+    label: '拨的通道',
+    kind: 'enum',
+    valueType: 'int',
+    options: RC_CHANNEL_OPTIONS,
+    values: RC_CHANNEL_OPTIONS.map((m) => m.value),
+    min: 1,
+    max: 16,
+    allowUnknown: true,
+    hint: '上限 16 的依据：hal/rc/rc.c:50 通道掩码是 uint16_t，rc_param.c 只定义到 RC16',
+  },
   { key: 'range', label: '触发区间（µs）', kind: 'range' },
 ]
 
 export const PILOT_COMMAND_FIELDS = [
-  { key: 'type', label: '类型', kind: 'enum', valueType: 'int', options: PILOT_COMMAND_TYPE_OPTIONS, values: PILOT_COMMAND_TYPE_OPTIONS.map((m) => m.value), allowUnknown: true, hint: '1=事件，2=状态' },
-  { key: 'cmd', label: '指令', kind: 'enum', valueType: 'int', options: FMT_COMMAND_OPTIONS, values: FMT_COMMAND_OPTIONS.map((item) => item.value), allowUnknown: true, hint: '编号来自固件 FMS_types.h 的 FMS_Cmd，gcs_cmd.c:1000~1007/2000 才处理；中文只用于显示，保存时写回原始整数。写 0 飞控会拒绝' },
-  { key: 'channel', label: '拨的通道', kind: 'enum', valueType: 'int', options: RC_CHANNEL_OPTIONS, values: RC_CHANNEL_OPTIONS.map((m) => m.value), min: 1, max: 16, allowUnknown: true },
+  {
+    key: 'type',
+    label: '类型',
+    kind: 'enum',
+    valueType: 'int',
+    options: PILOT_COMMAND_TYPE_OPTIONS,
+    values: PILOT_COMMAND_TYPE_OPTIONS.map((m) => m.value),
+    allowUnknown: true,
+    hint: '1=事件，2=状态',
+  },
+  {
+    key: 'cmd',
+    label: '指令',
+    kind: 'enum',
+    valueType: 'int',
+    options: FMT_COMMAND_OPTIONS,
+    values: FMT_COMMAND_OPTIONS.map((item) => item.value),
+    allowUnknown: true,
+    hint: '编号来自固件 FMS_types.h 的 FMS_Cmd，gcs_cmd.c:1000~1007/2000 才处理；中文只用于显示，保存时写回原始整数。写 0 飞控会拒绝',
+  },
+  {
+    key: 'channel',
+    label: '拨的通道',
+    kind: 'enum',
+    valueType: 'int',
+    options: RC_CHANNEL_OPTIONS,
+    values: RC_CHANNEL_OPTIONS.map((m) => m.value),
+    min: 1,
+    max: 16,
+    allowUnknown: true,
+  },
   { key: 'range', label: '触发区间（µs）', kind: 'range' },
 ]
 
@@ -481,8 +560,10 @@ export function validateRangeInput(input, label = '区间') {
   }
   if (!Array.isArray(value) || value.length !== 2) return { ok: false, message: `${label} 必须是两个数：下限、上限` }
   const nums = value.map(Number)
-  if (nums.some((n) => !Number.isInteger(n))) return { ok: false, message: `${label} 的两个数要是整数微秒（样例写法是 1000 / 2000）` }
-  if (nums.some((n) => n < 500 || n > 2500)) return { ok: false, message: `${label} 里的 ${nums.join(', ')} 超出 500~2500 µs，先确认是不是多写了零` }
+  if (nums.some((n) => !Number.isInteger(n)))
+    return { ok: false, message: `${label} 的两个数要是整数微秒（样例写法是 1000 / 2000）` }
+  if (nums.some((n) => n < 500 || n > 2500))
+    return { ok: false, message: `${label} 里的 ${nums.join(', ')} 超出 500~2500 µs，先确认是不是多写了零` }
   if (nums[0] >= nums[1]) return { ok: false, message: `${label} 的下限必须小于上限（${nums.join(', ')} 触发不了）` }
   return { ok: true, value: nums }
 }
@@ -505,7 +586,10 @@ export function validatePilotField(field, input, current) {
   if (field.kind === 'range') return validateRangeInput(input, field.label)
   const text = String(input ?? '').trim()
   if (!text) {
-    return { ok: false, message: `${field.label}（${field.key}）原本是 ${fmtRaw(current)}；清空不算改动，也不会删掉飞控上的这一项` }
+    return {
+      ok: false,
+      message: `${field.label}（${field.key}）原本是 ${fmtRaw(current)}；清空不算改动，也不会删掉飞控上的这一项`,
+    }
   }
   if (field.kind === 'enum') {
     const value = field.valueType === 'int' ? Number(input) : text
@@ -517,19 +601,26 @@ export function validatePilotField(field, input, current) {
     if (!known && !isCurrent && !field.allowUnknown) {
       return { ok: false, message: `${field.label} 只认已登记的选项，「${text}」没有依据` }
     }
-    if (field.min !== undefined && value < field.min) return { ok: false, message: `${field.label} 不能小于 ${field.min}` }
-    if (field.max !== undefined && value > field.max) return { ok: false, message: `${field.label} 不能大于 ${field.max}（样例注释：sbus 16 路、ppm 8 路）` }
+    if (field.min !== undefined && value < field.min)
+      return { ok: false, message: `${field.label} 不能小于 ${field.min}` }
+    if (field.max !== undefined && value > field.max)
+      return { ok: false, message: `${field.label} 不能大于 ${field.max}（样例注释：sbus 16 路、ppm 8 路）` }
     return { ok: true, value }
   }
   if (field.kind === 'int' || field.kind === 'float') {
     const n = Number(text)
     if (!Number.isFinite(n)) return { ok: false, message: `${field.label} 要填数字，「${text}」不是` }
-    if (field.kind === 'int' && !Number.isInteger(n)) return { ok: false, message: `${field.label} 要填整数（原文写法 ${fmtRaw(current)}）` }
+    if (field.kind === 'int' && !Number.isInteger(n))
+      return { ok: false, message: `${field.label} 要填整数（原文写法 ${fmtRaw(current)}）` }
     if (field.values && !field.values.includes(n) && n !== Number(current)) {
-      return { ok: false, message: `${field.label} 只认样例里出现过的 ${field.values.join(' / ')}（依据是那一行的注释），${text} 地面站没有依据` }
+      return {
+        ok: false,
+        message: `${field.label} 只认样例里出现过的 ${field.values.join(' / ')}（依据是那一行的注释），${text} 地面站没有依据`,
+      }
     }
     if (field.min !== undefined && n < field.min) return { ok: false, message: `${field.label} 不能小于 ${field.min}` }
-    if (field.max !== undefined && n > field.max) return { ok: false, message: `${field.label} 不能大于 ${field.max}（样例注释：sbus 16 路、ppm 8 路）` }
+    if (field.max !== undefined && n > field.max)
+      return { ok: false, message: `${field.label} 不能大于 ${field.max}（样例注释：sbus 16 路、ppm 8 路）` }
     return { ok: true, value: n }
   }
   return { ok: true, value: text }

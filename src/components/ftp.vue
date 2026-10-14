@@ -13,18 +13,47 @@
 
       <el-space wrap>
         <el-button :disabled="!mav.connected.value" :loading="loading" @click="refresh">刷新目录</el-button>
-        <el-button type="success" :disabled="!mav.canWrite.value || uploading || downloading || loading"
-                   :loading="uploading" @click="chooseUpload">上传到当前目录</el-button>
+        <el-button
+          type="success"
+          :disabled="!mav.canWrite.value || uploading || downloading || loading"
+          :loading="uploading"
+          @click="chooseUpload"
+          >上传到当前目录</el-button
+        >
         <el-button :disabled="!mav.connected.value" @click="resetSessions">重置 FTP 会话</el-button>
-        <input ref="fileInput" type="file" style="display:none" @change="onFileChange" />
+        <input ref="fileInput" type="file" style="display: none" @change="onFileChange" />
       </el-space>
     </el-card>
 
     <TypedConfirm ref="uploadConfirm" />
-    <TaskProgress v-if="loading || downloading || uploading" :title="uploading ? '上传并回读校验' : downloading ? '下载文件' : '读取目录'" :percentage="loading ? null : progress" evidence="来自真实 MAVFTP 请求；上传只有整文件回读 CRC32 匹配才完成" />
-    <EmptyStateAction v-if="!mav.connected.value" title="尚未连接飞控" reason="文件浏览与传输需要真实连接。" action-label="连接飞控" @action="$emit('open-connect')" />
-    <EmptyStateAction v-else-if="transferError" title="文件操作失败" :reason="transferError" action-label="重新读取目录" :action-disabled="loading || uploading || downloading" @action="refresh" />
-    <EmptyStateAction v-else-if="!loading && !files.length" title="当前目录没有可显示项目" reason="仅展示飞控真实返回的目录，不填充演示文件。" action-label="刷新目录" @action="refresh" />
+    <TaskProgress
+      v-if="loading || downloading || uploading"
+      :title="uploading ? '上传并回读校验' : downloading ? '下载文件' : '读取目录'"
+      :percentage="loading ? null : progress"
+      evidence="来自真实 MAVFTP 请求；上传只有整文件回读 CRC32 匹配才完成"
+    />
+    <EmptyStateAction
+      v-if="!mav.connected.value"
+      title="尚未连接飞控"
+      reason="文件浏览与传输需要真实连接。"
+      action-label="连接飞控"
+      @action="$emit('open-connect')"
+    />
+    <EmptyStateAction
+      v-else-if="transferError"
+      title="文件操作失败"
+      :reason="transferError"
+      action-label="重新读取目录"
+      :action-disabled="loading || uploading || downloading"
+      @action="refresh"
+    />
+    <EmptyStateAction
+      v-else-if="!loading && !files.length"
+      title="当前目录没有可显示项目"
+      reason="仅展示飞控真实返回的目录，不填充演示文件。"
+      action-label="刷新目录"
+      @action="refresh"
+    />
     <el-card class="file-card">
       <template #header>
         <div class="card-header">
@@ -32,8 +61,12 @@
           <div class="path-bar">
             <el-button size="small" :disabled="currentPath === '/'" @click="goUp">上级</el-button>
             <el-tag type="info">{{ currentPath }}</el-tag>
-            <el-progress v-if="downloading || uploading" :percentage="progress"
-                         :stroke-width="12" style="width: 220px; margin-left: 10px;" />
+            <el-progress
+              v-if="downloading || uploading"
+              :percentage="progress"
+              :stroke-width="12"
+              style="width: 220px; margin-left: 10px"
+            />
           </div>
         </div>
       </template>
@@ -48,9 +81,18 @@
         </el-table-column>
         <el-table-column label="操作" width="220">
           <template #default="s">
-            <el-button v-if="s.row.type === 'dir'" size="small" link type="primary" @click="enterDir(s.row)">进入</el-button>
-            <el-button v-if="s.row.type === 'file'" size="small" link type="success"
-                       :loading="downloading" @click="downloadFile(s.row)">下载</el-button>
+            <el-button v-if="s.row.type === 'dir'" size="small" link type="primary" @click="enterDir(s.row)"
+              >进入</el-button
+            >
+            <el-button
+              v-if="s.row.type === 'file'"
+              size="small"
+              link
+              type="success"
+              :loading="downloading"
+              @click="downloadFile(s.row)"
+              >下载</el-button
+            >
           </template>
         </el-table-column>
       </el-table>
@@ -64,9 +106,7 @@
         </div>
       </template>
       <div class="log-list">
-        <div v-for="(item, i) in logs" :key="i" :class="['log-item', item.type]">
-          [{{ item.time }}] {{ item.msg }}
-        </div>
+        <div v-for="(item, i) in logs" :key="i" :class="['log-item', item.type]">[{{ item.time }}] {{ item.msg }}</div>
       </div>
     </el-card>
   </div>
@@ -99,7 +139,9 @@ function addLog(type, msg) {
   if (logs.value.length > 300) logs.value.splice(0, logs.value.length - 300)
 }
 
-function joinPath(p, n) { return normalizeRemotePath(`${p}/${n}`) }
+function joinPath(p, n) {
+  return normalizeRemotePath(`${p}/${n}`)
+}
 
 function formatSize(size) {
   if (!Number.isFinite(size)) return ''
@@ -110,32 +152,44 @@ function formatSize(size) {
 
 async function refresh() {
   if (!mav.connected.value) return
-  loading.value = true; transferError.value = ''
+  loading.value = true
+  transferError.value = ''
   try {
     const list = await mav.ftp.list(currentPath.value)
-    files.value = list.map(i => ({ ...i, fullPath: joinPath(currentPath.value, i.name) }))
+    files.value = list.map((i) => ({ ...i, fullPath: joinPath(currentPath.value, i.name) }))
     addLog('info', `目录 ${currentPath.value} 刷新成功，共 ${list.length} 项`)
   } catch (e) {
     transferError.value = e.message || String(e)
     addLog('error', transferError.value)
     ElMessage.error(`目录列表失败：${e.message}`)
-  } finally { loading.value = false }
+  } finally {
+    loading.value = false
+  }
 }
 
-function enterDir(row) { if (row.type === 'dir') { currentPath.value = row.fullPath; refresh() } }
-function onRowDblClick(row) { if (row.type === 'dir') enterDir(row) }
+function enterDir(row) {
+  if (row.type === 'dir') {
+    currentPath.value = row.fullPath
+    refresh()
+  }
+}
+function onRowDblClick(row) {
+  if (row.type === 'dir') enterDir(row)
+}
 function goUp() {
   if (currentPath.value === '/') return
-  const parts = currentPath.value.split('/').filter(Boolean); parts.pop()
+  const parts = currentPath.value.split('/').filter(Boolean)
+  parts.pop()
   currentPath.value = parts.length ? `/${parts.join('/')}` : '/'
   refresh()
 }
 
 async function downloadFile(row) {
   if (!mav.connected.value || downloading.value) return
-  downloading.value = true; progress.value = 0
+  downloading.value = true
+  progress.value = 0
   try {
-    const blob = await mav.ftp.download(row.fullPath, p => {
+    const blob = await mav.ftp.download(row.fullPath, (p) => {
       if (p != null) progress.value = Math.round(p * 100)
     })
     mav.saveBlob(blob, row.name)
@@ -145,29 +199,47 @@ async function downloadFile(row) {
     transferError.value = e.message || String(e)
     addLog('error', transferError.value)
     ElMessage.error(`下载失败：${e.message}`)
-  } finally { downloading.value = false; progress.value = 0 }
+  } finally {
+    downloading.value = false
+    progress.value = 0
+  }
 }
 
-function chooseUpload() { if (mav.canWrite.value && !uploading.value && !downloading.value && !loading.value) fileInput.value.click() }
+function chooseUpload() {
+  if (mav.canWrite.value && !uploading.value && !downloading.value && !loading.value) fileInput.value.click()
+}
 
 async function onFileChange(event) {
-  const file = event.target.files?.[0]; event.target.value = ''
+  const file = event.target.files?.[0]
+  event.target.value = ''
   if (!file || uploading.value || downloading.value || !mav.canWrite.value) return
-  uploading.value = true; progress.value = 0; transferError.value = ''
+  uploading.value = true
+  progress.value = 0
+  transferError.value = ''
   try {
     const policy = ftpWritePolicy(joinPath(currentPath.value, file.name))
     if (policy.blocked) {
       const text = `${policy.path} 只能通过配置工作流与右下角保存，不允许 FTP 覆盖。请在配置页导入或编辑后点击「保存到飞控」。`
-      addLog('info', text); ElMessage.warning(text)
-      emit('open-config-review', { path: policy.path, source: 'ftp' }); return
+      addLog('info', text)
+      ElMessage.warning(text)
+      emit('open-config-review', { path: policy.path, source: 'ftp' })
+      return
     }
-    const accepted = await uploadConfirm.value.confirm({ title: policy.system ? '系统路径危险覆盖' : '文件覆盖二次确认', description: `目标 ${policy.path}。此操作会覆盖同名文件；${policy.system ? '系统文件可能影响启动与飞行安全。' : '请确认已经备份原文件。'}`, expected: policy.confirmation, confirmText: '确认上传覆盖' })
+    const accepted = await uploadConfirm.value.confirm({
+      title: policy.system ? '系统路径危险覆盖' : '文件覆盖二次确认',
+      description: `目标 ${policy.path}。此操作会覆盖同名文件；${policy.system ? '系统文件可能影响启动与飞行安全。' : '请确认已经备份原文件。'}`,
+      expected: policy.confirmation,
+      confirmText: '确认上传覆盖',
+    })
     if (!accepted) return
     // 用户确认期间链路、全局配置闸可能变化，发送前必须再次复核。
     if (!mav.canWrite.value) throw new Error('当前不可安全写入，已取消上传')
     const res = await mav.ftp.upload(file, policy.path, {
-      overwrite: true, verify: 'crc',
-      onProgress: p => { if (p != null) progress.value = Math.round(p * 100) },
+      overwrite: true,
+      verify: 'crc',
+      onProgress: (p) => {
+        if (p != null) progress.value = Math.round(p * 100)
+      },
     })
     if (!ftpUploadVerified(res)) throw new Error('上传结果缺少完整回读 CRC32 匹配证据，不能确认成功')
     addLog('info', `上传完成并回读校验通过：${file.name}（${res.size} 字节，CRC32 ${res.crc32Hex}）`)
@@ -177,23 +249,57 @@ async function onFileChange(event) {
     transferError.value = e.message || String(e)
     addLog('error', transferError.value)
     ElMessage.error(`上传未确认成功：${transferError.value}`)
-  } finally { uploading.value = false; progress.value = 0 }
+  } finally {
+    uploading.value = false
+    progress.value = 0
+  }
 }
 
 async function resetSessions() {
-  try { await mav.ftp.reset(); ElMessage.success('已发送重置 FTP 会话请求') }
-  catch (e) { ElMessage.error(e.message || '重置失败') }
+  try {
+    await mav.ftp.reset()
+    ElMessage.success('已发送重置 FTP 会话请求')
+  } catch (e) {
+    ElMessage.error(e.message || '重置失败')
+  }
 }
 
-onMounted(() => { if (mav.connected.value) refresh() })
+onMounted(() => {
+  if (mav.connected.value) refresh()
+})
 </script>
 
 <style scoped>
-.mavlink-ftp { display: flex; flex-direction: column; gap: 12px; padding: 8px; }
-.card-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.path-bar { display: flex; align-items: center; gap: 8px; }
-.log-list { max-height: 240px; overflow: auto; font-family: monospace; font-size: 12px; }
-.log-item { margin-bottom: 4px; }
-.log-item.error { color: var(--dsh-danger-vivid); }
-.log-item.info { color: var(--dsh-text-3); }
+.mavlink-ftp {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px;
+}
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.path-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.log-list {
+  max-height: 240px;
+  overflow: auto;
+  font-family: monospace;
+  font-size: 12px;
+}
+.log-item {
+  margin-bottom: 4px;
+}
+.log-item.error {
+  color: var(--dsh-danger-vivid);
+}
+.log-item.info {
+  color: var(--dsh-text-3);
+}
 </style>

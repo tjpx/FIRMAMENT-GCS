@@ -35,18 +35,19 @@ const TABLE = (() => {
  * @returns {number} 无符号 32 位整数
  */
 export function crc32Update(crc, data) {
-  const buf = data instanceof Uint8Array
+  const buf =
+    data instanceof Uint8Array
       ? data
       : ArrayBuffer.isView(data)
-          ? new Uint8Array(data.buffer, data.byteOffset, data.byteLength)
-          : new Uint8Array(data)
+        ? new Uint8Array(data.buffer, data.byteOffset, data.byteLength)
+        : new Uint8Array(data)
 
   // 进入内部态：~crc；结束时再 ~ 回来
-  let c = (~(crc >>> 0)) >>> 0
+  let c = ~(crc >>> 0) >>> 0
   for (let i = 0; i < buf.length; i++) {
     c = TABLE[(c ^ buf[i]) & 0xff] ^ (c >>> 8)
   }
-  return (~c) >>> 0
+  return ~c >>> 0
 }
 
 /** 一次性计算 @returns {number} 无符号 32 位整数 */
@@ -65,7 +66,7 @@ export function crc32Hex(value) {
  * C 侧有时会返回 int32，DataView.getInt32 也可能是负数。
  */
 export function crc32Equal(a, b) {
-  return (a >>> 0) === (b >>> 0)
+  return a >>> 0 === b >>> 0
 }
 
 export default crc32

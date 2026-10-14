@@ -2,7 +2,14 @@
 export function uploadEvidence(result) {
   const local = String(result?.crc32Hex || '').toUpperCase()
   const remote = String(result?.remoteCrc32Hex || '').toUpperCase()
-  return !!result?.verified && result?.verifyMode === 'crc' && !!local && local === remote && Number.isFinite(result?.size) && result.size >= 0
+  return (
+    !!result?.verified &&
+    result?.verifyMode === 'crc' &&
+    !!local &&
+    local === remote &&
+    Number.isFinite(result?.size) &&
+    result.size >= 0
+  )
 }
 
 export function activationNotice(key) {
@@ -12,13 +19,18 @@ export function activationNotice(key) {
 }
 
 export function reviewOutcome(changes, results = {}, blocked = []) {
-  return changes.map(change => {
+  return changes.map((change) => {
     const key = change.file === 'sysconfig.toml' ? 'sysconfig' : 'param'
     const result = results[key]
-    const block = blocked.find(item => item.key === key || item.label === change.file)
+    const block = blocked.find((item) => item.key === key || item.label === change.file)
     const ok = result?.ok === true && result?.verified === true
-    return { ...change, ok, status: ok ? '整文件回读 CRC 已核对' : block ? '回传被拦截' : '未通过回读校验',
+    return {
+      ...change,
+      ok,
+      status: ok ? '整文件回读 CRC 已核对' : block ? '回传被拦截' : '未通过回读校验',
       detail: ok ? activationNotice(key) : block?.reason || result?.error || '未写入或尚无校验证据',
-      localCrc32: result?.localCrc32 || '', remoteCrc32: result?.remoteCrc32 || '' }
+      localCrc32: result?.localCrc32 || '',
+      remoteCrc32: result?.remoteCrc32 || '',
+    }
   })
 }

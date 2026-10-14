@@ -21,9 +21,14 @@ export const TAPE_PX_PER_DEG = 3
 
 /** 滚转刻度：角度 → 该处是否画长刻度。**不带数字**（业主要求盘上不写刻度值） */
 export const ROLL_SCALE_MARKS = Object.freeze(
-  [0, 10, 20, 30, 45, 60].flatMap((deg) => (deg === 0
-    ? [{ deg: 0, major: true }]
-    : [{ deg, major: deg === 30 || deg === 60 }, { deg: -deg, major: deg === 30 || deg === 60 }]))
+  [0, 10, 20, 30, 45, 60].flatMap((deg) =>
+    deg === 0
+      ? [{ deg: 0, major: true }]
+      : [
+          { deg, major: deg === 30 || deg === 60 },
+          { deg: -deg, major: deg === 30 || deg === 60 },
+        ]
+  )
 )
 
 export function clamp(value, min, max) {
@@ -106,7 +111,7 @@ export function headingRose(heading, { stepDeg = 5, labelStepDeg = 30 } = {}) {
     out.push({
       deg,
       rot: deg - h,
-      label: kind ? headingLabel(deg) : (labeled ? String(deg) : ''),
+      label: kind ? headingLabel(deg) : labeled ? String(deg) : '',
       kind,
       // 主刻度：带数字的每 30°、以及 8 个方位点（N/E/S/W 与 NE/SE/…，前者在组件里更粗）
       major: labeled || kind !== '',
@@ -127,12 +132,7 @@ export function headingRose(heading, { stepDeg = 5, labelStepDeg = 30 } = {}) {
  *
  * @returns {Array<{deg:number, y:number, width:number, label:string, positive:boolean, isPitch:boolean}>}
  */
-export function pitchLadder(pitch, {
-  pxPerDeg = PX_PER_DEG,
-  limitDeg = 90,
-  stepDeg = 5,
-  visibleRangeDeg = 25,
-} = {}) {
+export function pitchLadder(pitch, { pxPerDeg = PX_PER_DEG, limitDeg = 90, stepDeg = 5, visibleRangeDeg = 25 } = {}) {
   const raw = Number(pitch)
   const p = Number.isFinite(raw) ? raw : 0
   const out = []

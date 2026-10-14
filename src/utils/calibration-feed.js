@@ -31,7 +31,9 @@ export const CALIB_SENSORS = {
 }
 
 export function isCalibStatus(text) {
-  return String(text || '').trim().startsWith(CALIB_PREFIX)
+  return String(text || '')
+    .trim()
+    .startsWith(CALIB_PREFIX)
 }
 
 /**
@@ -42,7 +44,9 @@ export function isCalibStatus(text) {
 export function parseCalibStatus(text) {
   // MAVLink STATUSTEXT 的 text 是定长 char[50]；固件未使用的尾部字节可能是 NUL。
   // 先去掉 NUL 再 trim，否则肉眼看到的 "[cal] down ..." 也会匹配失败。
-  const line = String(text || '').replace(/\0+$/g, '').trim()
+  const line = String(text || '')
+    .replace(/\0+$/g, '')
+    .trim()
   if (!isCalibStatus(line)) return null
   const body = line.slice(CALIB_PREFIX.length).trim()
   const raw = line
@@ -82,16 +86,25 @@ export function parseCalibStatus(text) {
 export function describeCalibEvent(evt) {
   if (!evt) return ''
   const sensor = evt.sensor && CALIB_SENSORS[evt.sensor] ? CALIB_SENSORS[evt.sensor] : evt.sensor
-  const orient = evt.orientation && CALIB_ORIENTATIONS[evt.orientation] ? CALIB_ORIENTATIONS[evt.orientation] : evt.orientation
+  const orient =
+    evt.orientation && CALIB_ORIENTATIONS[evt.orientation] ? CALIB_ORIENTATIONS[evt.orientation] : evt.orientation
   switch (evt.kind) {
-    case 'started': return `飞控已开始校准${sensor ? `（${sensor}）` : ''}`
-    case 'progress': return `飞控进度 ${evt.progress}%`
-    case 'orientation': return `已识别姿态：${orient}，请保持不动`
-    case 'sideDone': return `${orient} 面已完成，请旋转到另一个面`
-    case 'done': return `飞控回报校准完成${sensor ? `（${sensor}）` : ''}`
-    case 'failed': return `飞控回报校准失败${sensor ? `（${sensor}）` : ''}`
-    case 'cancelled': return '飞控回报校准已取消'
-    default: return evt.raw
+    case 'started':
+      return `飞控已开始校准${sensor ? `（${sensor}）` : ''}`
+    case 'progress':
+      return `飞控进度 ${evt.progress}%`
+    case 'orientation':
+      return `已识别姿态：${orient}，请保持不动`
+    case 'sideDone':
+      return `${orient} 面已完成，请旋转到另一个面`
+    case 'done':
+      return `飞控回报校准完成${sensor ? `（${sensor}）` : ''}`
+    case 'failed':
+      return `飞控回报校准失败${sensor ? `（${sensor}）` : ''}`
+    case 'cancelled':
+      return '飞控回报校准已取消'
+    default:
+      return evt.raw
   }
 }
 

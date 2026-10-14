@@ -38,15 +38,10 @@ import { ENUMS as PROTOCOL_ENUMS } from '../protocol/mavlink-table.generated.js'
 /* 下载完整性与参数类型解码都是纯函数，单独成模块：
    真机出过「截断的文件被当成下载成功」的事故，这类判断必须能在 selftest 里直接跑到，
    不能只靠下一次接飞控才发现。 */
-import {
-  createDownloadState, acceptBurstPacket, assertDownloadComplete,
-} from '../utils/ftp-download.js'
+import { createDownloadState, acceptBurstPacket, assertDownloadComplete } from '../utils/ftp-download.js'
 import { decodeParamValue } from '../utils/param-value.js'
 import { attitudeFromQuaternion } from '../utils/attitude-quat.js'
-import {
-  describeMode, isArmed, systemState, severity,
-  gpsFix, landedState, vtolState,
-} from '../protocol/mav-labels.js'
+import { describeMode, isArmed, systemState, severity, gpsFix, landedState, vtolState } from '../protocol/mav-labels.js'
 
 import { createRebootReconnect, rebootError } from '../utils/reboot-reconnect.js'
 import { crc32, crc32Hex } from '../utils/crc32.js'
@@ -69,23 +64,35 @@ function warnOnce(key, ...args) {
 }
 
 function ftpWarn(...args) {
-  const head = String(args[0] ?? '').replace(/\[[^\]]*\]/g, '').slice(0, 48)
+  const head = String(args[0] ?? '')
+    .replace(/\[[^\]]*\]/g, '')
+    .slice(0, 48)
   warnOnce(`[ftp]${head}`, ...args)
 }
 
 // FTP 的过程性日志（每一步一条）默认不打印：它不参与任何判断，真机上只会刷屏。
 // 要看的时候在控制台执行 localStorage.setItem('fmt.ftpLog', '1') 然后刷新页面。
 const FTP_VERBOSE = (() => {
-  try { return typeof localStorage !== 'undefined' && localStorage.getItem('fmt.ftpLog') === '1' } catch { return false }
+  try {
+    return typeof localStorage !== 'undefined' && localStorage.getItem('fmt.ftpLog') === '1'
+  } catch {
+    return false
+  }
 })()
-function ftpLog(...args) { if (FTP_VERBOSE) console.log(...args) }
+function ftpLog(...args) {
+  if (FTP_VERBOSE) console.log(...args)
+}
 
 const _decodeWarned = new Set()
 function warnDecodeFailure(msgid, e) {
   if (_decodeWarned.has(msgid)) return
   _decodeWarned.add(msgid)
   let name = `msgid=${msgid}`
-  try { name = `${messageName(msgid)}(${msgid})` } catch { /* 取不到名字就用兜底文案 */ }
+  try {
+    name = `${messageName(msgid)}(${msgid})`
+  } catch {
+    /* 取不到名字就用兜底文案 */
+  }
   console.warn(`[mavlink] 解析 ${name} 失败（同一 msgid 只报一次，避免每包刷屏拖慢主线程）：`, e)
 }
 let _instance = null
@@ -113,15 +120,36 @@ function createInstance() {
   const error = ref('')
   const baudRate = ref(0)
   const deviceState = reactive({
-    phase: 'idle', transport: null, connectedAt: 0, sessionId: 0, lastRxAt: 0,
+    phase: 'idle',
+    transport: null,
+    connectedAt: 0,
+    sessionId: 0,
+    lastRxAt: 0,
     error: null,
-    identity: { detected: false, sysid: null, compid: null, type: null, autopilot: null, systemStatus: null, systemStatusLabel: '—' },
+    identity: {
+      detected: false,
+      sysid: null,
+      compid: null,
+      type: null,
+      autopilot: null,
+      systemStatus: null,
+      systemStatusLabel: '—',
+    },
     heartbeat: { lastAt: 0, ageMs: null, healthy: false },
     // attitude 由 ATTITUDE(30) 或 ATTITUDE_QUATERNION(31) 点亮（两者是同一件事的两个通道），
     // imu 是 SCALED_IMU/RAW_IMU/HIGHRES_IMU 的独立通道。
     // 两者过去共用一个键：飞控不推姿态时，读数照样被判成"新鲜"，死值 0 看着像实时值。
     freshness: { vfrHud: 0, attitude: 0, imu: 0, gps: 0, battery: 0, sysStatus: 0, rc: 0, servos: 0, statusText: 0 },
-    valid: { vfrHud: false, attitude: false, imu: false, gps: false, battery: false, sysStatus: false, rc: false, servos: false },
+    valid: {
+      vfrHud: false,
+      attitude: false,
+      imu: false,
+      gps: false,
+      battery: false,
+      sysStatus: false,
+      rc: false,
+      servos: false,
+    },
   })
   let deviceTicker = null
 
@@ -150,58 +178,100 @@ function createInstance() {
    */
   function isStaleAttitudeFrame(timeBootMs, msgid) {
     const prevSource = _attSource.lastMsgId
-    if (prevSource !== msgid) return false          // 换了来源：时基不可比，不比较
+    if (prevSource !== msgid) return false // 换了来源：时基不可比，不比较
     const prev = data.attitude.timeBootMs
     if (!Number.isFinite(prev) || !prev) return false
     if (!Number.isFinite(timeBootMs)) return false
-    const delta = (timeBootMs - prev) | 0             // u32 回绕安全
-    if (delta >= 0) return false                     // 前进（含回绕后的前进）
-    if (Math.abs(delta) > 1000) return false         // 巨大回退＝坏帧，按"接受"处理，不能让姿态僵在旧值
-    return true                                      // 小幅回退＝同来源乱序，丢弃
+    const delta = (timeBootMs - prev) | 0 // u32 回绕安全
+    if (delta >= 0) return false // 前进（含回绕后的前进）
+    if (Math.abs(delta) > 1000) return false // 巨大回退＝坏帧，按"接受"处理，不能让姿态僵在旧值
+    return true // 小幅回退＝同来源乱序，丢弃
   }
 
   // 飞控身份 + 飞行状态（全部来自 HEARTBEAT；顶栏解锁/模式显示就读这里）
   const vehicle = reactive({
-    sysid: 1, compid: 1, detected: false,
-    type: 0,            // MAV_TYPE
-    autopilot: 0,       // MAV_AUTOPILOT
-    baseMode: 0,        // MAV_MODE_FLAG 位图
-    customMode: 0,      // PX4/FMT 编码的机载模式
+    sysid: 1,
+    compid: 1,
+    detected: false,
+    type: 0, // MAV_TYPE
+    autopilot: 0, // MAV_AUTOPILOT
+    baseMode: 0, // MAV_MODE_FLAG 位图
+    customMode: 0, // PX4/FMT 编码的机载模式
     armed: false,
-    modeCode: 'UNKNOWN_0',   // 稳定标识，供页面 class/判断用（如 AUTO.RTL）
-    modeName: '未知',        // 中文文案（如「自动·返航」）
+    modeCode: 'UNKNOWN_0', // 稳定标识，供页面 class/判断用（如 AUTO.RTL）
+    modeName: '未知', // 中文文案（如「自动·返航」）
     systemStatus: 0,
     systemStatusLabel: '—',
-    lastHeartbeatAt: 0,      // 链路是否真的活着
+    lastHeartbeatAt: 0, // 链路是否真的活着
   })
 
   // 常用实时数据。键名是页面契约：attitude / vfrHud / battery / gps / sysStatus 不可随意改
   const data = reactive({
     // 姿态：优先 ATTITUDE_QUATERNION(31)，没有它才降级用 ATTITUDE(30)（见 _attSource 与 handleMessage）
-    attitude:   { roll: 0, pitch: 0, yaw: 0, rollspeed: 0, pitchspeed: 0, yawspeed: 0, timeBootMs: 0, quat: null, quatOffsetApplied: false },
-    imu:         { accel: [null, null, null], gyro: [null, null, null], mag: [null, null, null], timeBootMs: 0, source: '', lastAt: 0 },
-    vfrHud:     { airspeed: 0, groundspeed: 0, heading: 0, throttle: 0, alt: 0, climb: 0 },
+    attitude: {
+      roll: 0,
+      pitch: 0,
+      yaw: 0,
+      rollspeed: 0,
+      pitchspeed: 0,
+      yawspeed: 0,
+      timeBootMs: 0,
+      quat: null,
+      quatOffsetApplied: false,
+    },
+    imu: {
+      accel: [null, null, null],
+      gyro: [null, null, null],
+      mag: [null, null, null],
+      timeBootMs: 0,
+      source: '',
+      lastAt: 0,
+    },
+    vfrHud: { airspeed: 0, groundspeed: 0, heading: 0, throttle: 0, alt: 0, climb: 0 },
     // 本固件不周期发送 BATTERY_STATUS，电压/电流/剩余量只能来自 SYS_STATUS（见 vendor 说明）
-    battery:    { voltage: 0, current: 0, percent: 0, source: 'SYS_STATUS' },
-    sysStatus:  {
-      onboardControlSensorsPresent: 0, onboardControlSensorsEnabled: 0,
-      onboardControlSensorsHealth: 0, load: 0, voltageBattery: 0,
-      currentBattery: 0, batteryRemaining: 0, dropRateComm: 0, errorsComm: 0,
+    battery: { voltage: 0, current: 0, percent: 0, source: 'SYS_STATUS' },
+    sysStatus: {
+      onboardControlSensorsPresent: 0,
+      onboardControlSensorsEnabled: 0,
+      onboardControlSensorsHealth: 0,
+      load: 0,
+      voltageBattery: 0,
+      currentBattery: 0,
+      batteryRemaining: 0,
+      dropRateComm: 0,
+      errorsComm: 0,
       errorsCount: [0, 0, 0, 0],
     },
     // 定位质量/卫星数来自 GPS_RAW_INT，平滑经纬度来自 GLOBAL_POSITION_INT，两者合并到同一个 gps
-    gps:        { fixType: 0, fixLabel: '无定位', usable: false,
-                  lat: 0, lon: 0, alt: 0, relAlt: 0, rawLat: 0, rawLon: 0,
-                  satellitesVisible: 0, hdop: 0, vdop: 0, speed: 0, cog: 0,
-                  heading: 0, vx: 0, vy: 0, vz: 0, timeBootMs: 0 },
-    altitude:   { monotonic: 0, amsl: 0, local: 0, relative: 0, terrain: 0, bottomClearance: 0, timeUsec: 0 },
+    gps: {
+      fixType: 0,
+      fixLabel: '无定位',
+      usable: false,
+      lat: 0,
+      lon: 0,
+      alt: 0,
+      relAlt: 0,
+      rawLat: 0,
+      rawLon: 0,
+      satellitesVisible: 0,
+      hdop: 0,
+      vdop: 0,
+      speed: 0,
+      cog: 0,
+      heading: 0,
+      vx: 0,
+      vy: 0,
+      vz: 0,
+      timeBootMs: 0,
+    },
+    altitude: { monotonic: 0, amsl: 0, local: 0, relative: 0, terrain: 0, bottomClearance: 0, timeUsec: 0 },
     localPosition: { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, timeBootMs: 0 },
-    extState:   { vtolState: 0, vtolLabel: '—', landedState: 0, landedLabel: '—' },
+    extState: { vtolState: 0, vtolLabel: '—', landedState: 0, landedLabel: '—' },
     rcChannels: { rssi: 0, chancount: 0, timeBootMs: 0, channels: new Uint16Array(18) },
     // 飞控不周期发送 SERVO_OUTPUT_RAW：online=false 时页面必须显示"未接通"，禁止画假数据
-    servos:     { port: 0, timeUsec: 0, raw: new Uint16Array(16), online: false },
+    servos: { port: 0, timeUsec: 0, raw: new Uint16Array(16), online: false },
     statusText: '',
-    statusLogs: [],   // 最近 STATUSTEXT（含等级的环形缓冲）
+    statusLogs: [], // 最近 STATUSTEXT（含等级的环形缓冲）
   })
 
   // 解析器内部是普通对象（每帧都改会拖慢渲染），这里按帧同步成响应式供顶栏显示
@@ -215,7 +285,7 @@ function createInstance() {
 
   let parser = null
   let link = null
-  let transport = null     // { type:'webserial', port, reader, writer }
+  let transport = null // { type:'webserial', port, reader, writer }
   let readPromise = null
   let heartbeatTimer = null
   let manualDisconnect = false
@@ -243,12 +313,20 @@ function createInstance() {
     listeners.get(event)?.delete(handler)
   }
   function emit(event, payload) {
-    listeners.get(event)?.forEach(fn => {
-      try { fn(payload) } catch (e) { warnOnce('[mavlink] listener error: ' + ((e && e.message) || String(e)), '[mavlink] 页面回调出错（同类只报一次）:', e) }
+    listeners.get(event)?.forEach((fn) => {
+      try {
+        fn(payload)
+      } catch (e) {
+        warnOnce(
+          '[mavlink] listener error: ' + ((e && e.message) || String(e)),
+          '[mavlink] 页面回调出错（同类只报一次）:',
+          e
+        )
+      }
     })
     // '*' 监听器接收所有原始消息
     if (event !== '*' && typeof event === 'number') {
-      listeners.get('*')?.forEach(fn => fn({ msgid: event, ...payload }))
+      listeners.get('*')?.forEach((fn) => fn({ msgid: event, ...payload }))
     }
   }
 
@@ -262,9 +340,14 @@ function createInstance() {
     function _open() {
       if (session.transactionLocked) throw new Error('参数保存事务进行中，控制台暂不可打开')
       if (!connected.value) return
-      enqueue(link.encodeSerialControl(new Uint8Array(0), {
-        baudRate: 0, timeout: 100, flags: shellFlags, device: shellDevice,
-      }))
+      enqueue(
+        link.encodeSerialControl(new Uint8Array(0), {
+          baudRate: 0,
+          timeout: 100,
+          flags: shellFlags,
+          device: shellDevice,
+        })
+      )
     }
 
     /** 发送字符串（自动按 70 字节分片） */
@@ -273,15 +356,25 @@ function createInstance() {
       if (!connected.value) return
       const bytes = textEncoder.encode(text)
       if (!bytes.length) {
-        enqueue(link.encodeSerialControl(new Uint8Array(0), {
-          baudRate: 0, timeout: 200, flags: shellFlags, device: shellDevice,
-        }))
+        enqueue(
+          link.encodeSerialControl(new Uint8Array(0), {
+            baudRate: 0,
+            timeout: 200,
+            flags: shellFlags,
+            device: shellDevice,
+          })
+        )
         return
       }
       for (let i = 0; i < bytes.length; i += 70) {
-        enqueue(link.encodeSerialControl(bytes.slice(i, i + 70), {
-          baudRate: 0, timeout: 200, flags: shellFlags, device: shellDevice,
-        }))
+        enqueue(
+          link.encodeSerialControl(bytes.slice(i, i + 70), {
+            baudRate: 0,
+            timeout: 200,
+            flags: shellFlags,
+            device: shellDevice,
+          })
+        )
       }
     }
 
@@ -303,13 +396,39 @@ function createInstance() {
     send: (text, options = {}) => {
       if (!options.owner) return cli.send(text)
       if (!session.canSend(options.owner)) throw new Error('参数保存事务已失效')
-      const currentTransport = transport, currentLink = link, sessionId = deviceState.sessionId
+      const currentTransport = transport,
+        currentLink = link,
+        sessionId = deviceState.sessionId
       const check = () => {
-        if (!session.canSend(options.owner) || !session.transactionLocked || transport !== currentTransport || link !== currentLink || deviceState.sessionId !== sessionId || !connected.value || deviceState.phase !== 'online' || !deviceState.heartbeat.healthy || vehicle.armed) throw new Error('参数保存安全条件或设备会话已改变')
+        if (
+          !session.canSend(options.owner) ||
+          !session.transactionLocked ||
+          transport !== currentTransport ||
+          link !== currentLink ||
+          deviceState.sessionId !== sessionId ||
+          !connected.value ||
+          deviceState.phase !== 'online' ||
+          !deviceState.heartbeat.healthy ||
+          vehicle.armed
+        )
+          throw new Error('参数保存安全条件或设备会话已改变')
       }
       check()
-      const bytes = textEncoder.encode(text), pending = []
-      for (let i = 0; i < bytes.length; i += 70) pending.push(enqueueWritten(currentLink.encodeSerialControl(bytes.slice(i, i + 70), { baudRate: 0, timeout: 200, flags: SERIAL_CONTROL_FLAG.REPLY | SERIAL_CONTROL_FLAG.EXCLUSIVE, device: SERIAL_CONTROL_DEV.SHELL }), null, check))
+      const bytes = textEncoder.encode(text),
+        pending = []
+      for (let i = 0; i < bytes.length; i += 70)
+        pending.push(
+          enqueueWritten(
+            currentLink.encodeSerialControl(bytes.slice(i, i + 70), {
+              baudRate: 0,
+              timeout: 200,
+              flags: SERIAL_CONTROL_FLAG.REPLY | SERIAL_CONTROL_FLAG.EXCLUSIVE,
+              device: SERIAL_CONTROL_DEV.SHELL,
+            }),
+            null,
+            check
+          )
+        )
       return Promise.all(pending)
     },
     isConnected: () => connected.value,
@@ -348,9 +467,15 @@ function createInstance() {
      *  地面站只能干等到超时（例如 CALC_FILE_CRC32 要白等 8 秒）。这里直接快速失败。 */
     const FC_SUPPORTED_OPS = new Set([
       FTP_OP.NONE,
-      FTP_OP.TERMINATE_SESSION, FTP_OP.RESET_SESSIONS, FTP_OP.LIST_DIRECTORY,
-      FTP_OP.OPEN_FILE_RO, FTP_OP.READ_FILE, FTP_OP.CREATE_FILE,
-      FTP_OP.WRITE_FILE, FTP_OP.OPEN_FILE_WO, FTP_OP.BURST_READ_FILE,
+      FTP_OP.TERMINATE_SESSION,
+      FTP_OP.RESET_SESSIONS,
+      FTP_OP.LIST_DIRECTORY,
+      FTP_OP.OPEN_FILE_RO,
+      FTP_OP.READ_FILE,
+      FTP_OP.CREATE_FILE,
+      FTP_OP.WRITE_FILE,
+      FTP_OP.OPEN_FILE_WO,
+      FTP_OP.BURST_READ_FILE,
     ])
 
     /**
@@ -363,15 +488,14 @@ function createInstance() {
       if (errCode === FTP_ERR_EOF) return true
       if (errCode === 234) return true // 旧版地面站约定，保留兼容
       if (errCode === FTP_ERR_NONE) return true
-      if ((errCode === FTP_ERR_FAIL || errCode === FTP_ERR_FAIL_ERRNO)
-          && (errno == null || errno === 0)) return true
+      if ((errCode === FTP_ERR_FAIL || errCode === FTP_ERR_FAIL_ERRNO) && (errno == null || errno === 0)) return true
       return false
     }
 
     const CHUNK = 239
     /* burst 由固件任务循环自发续流，地面站用「多久没收到新包」判定，不用总超时 */
     const BURST_IDLE_MS = 4000
-    const sleep = ms => new Promise(r => setTimeout(r, ms))
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
     function nextSeq() {
       ftpSeq = (ftpSeq + 1) & 0xffff
@@ -392,10 +516,7 @@ function createInstance() {
       const declared = Number(obj?.size)
       let data = obj?.data instanceof Uint8Array ? obj.data : new Uint8Array(0)
 
-      const safe = Math.min(
-          Number.isFinite(declared) ? Math.max(0, declared) : data.length,
-          maxLen
-      )
+      const safe = Math.min(Number.isFinite(declared) ? Math.max(0, declared) : data.length, maxLen)
 
       if (safe > data.length) {
         const padded = new Uint8Array(safe)
@@ -413,14 +534,15 @@ function createInstance() {
       const run = () => _request(opcode, reqData, options)
       // 不管上一个成功还是失败，都要接着排；链自身吞异常，结果交给调用方
       const next = ftpChain.then(run, run)
-      ftpChain = next.then(() => {}, () => {})
+      ftpChain = next.then(
+        () => {},
+        () => {}
+      )
       return next
     }
 
     async function _request(opcode, reqData, options = {}) {
-      const {
-        session = 0, offset = 0, size, timeout = 3500, force = false,
-      } = options
+      const { session = 0, offset = 0, size, timeout = 3500, force = false } = options
 
       if (reqData && !(reqData instanceof Uint8Array)) {
         reqData = Uint8Array.from(reqData)
@@ -431,10 +553,8 @@ function createInstance() {
       }
 
       if (!FC_SUPPORTED_OPS.has(opcode) && !force) {
-        const name = Object.keys(FTP_OP).find(k => FTP_OP[k] === opcode) || opcode
-        const e = new Error(
-            `飞控未实现 FTP 操作 ${name}(opcode ${opcode})：发出去不会有任何应答，已直接失败`
-        )
+        const name = Object.keys(FTP_OP).find((k) => FTP_OP[k] === opcode) || opcode
+        const e = new Error(`飞控未实现 FTP 操作 ${name}(opcode ${opcode})：发出去不会有任何应答，已直接失败`)
         e.code = 'UnsupportedOpcode'
         e.opcode = opcode
         throw e
@@ -446,7 +566,7 @@ function createInstance() {
       }
 
       const seq = nextSeq()
-      const payloadSize = typeof size === 'number' ? size : (reqData ? reqData.length : 0)
+      const payloadSize = typeof size === 'number' ? size : reqData ? reqData.length : 0
 
       const ftpPayload = buildFtpPayload({
         seq,
@@ -531,7 +651,6 @@ function createInstance() {
 
       // NAK 不是文件数据，不能 resolve 给读取循环
       if (hdr.opcode === FTP_OP.NAK) {
-
         const norm = _normalizeFtpData(hdr, CHUNK)
         const errCode = norm.size > 0 ? norm.data[0] : -1
         const errName = FTP_ERR?.[errCode] || `Unknown(${errCode})`
@@ -540,12 +659,8 @@ function createInstance() {
         if (errCode === FTP_ERR_FAIL_ERRNO && norm.size > 1) {
           errnoCode = norm.data[1]
         }
-        const errnoText = errnoCode != null
-            ? (POSIX_ERRNO_TEXT?.[errnoCode] || '未知 errno')
-            : ''
-        const err = new Error(
-            `FTP NAK: ${errName}${errnoCode != null ? ` errno=${errnoCode} (${errnoText})` : ''}`
-        )
+        const errnoText = errnoCode != null ? POSIX_ERRNO_TEXT?.[errnoCode] || '未知 errno' : ''
+        const err = new Error(`FTP NAK: ${errName}${errnoCode != null ? ` errno=${errnoCode} (${errnoText})` : ''}`)
         err.code = errName
         err.errorCode = errCode
         err.errno = errnoCode
@@ -585,9 +700,9 @@ function createInstance() {
         const b = burst
         if (!b) return
         burst = null
-        b.reject(new Error(
-            `BURST READ 静默超过 ${BURST_IDLE_MS}ms：只收到 ${b.state.received}/${b.state.expectedSize} 字节`
-        ))
+        b.reject(
+          new Error(`BURST READ 静默超过 ${BURST_IDLE_MS}ms：只收到 ${b.state.received}/${b.state.expectedSize} 字节`)
+        )
       }, BURST_IDLE_MS)
     }
 
@@ -685,13 +800,15 @@ function createInstance() {
       return new Promise((resolve, reject) => {
         burst = { seq, session, name, state, onProgress, resolve, reject, timer: null }
         _armBurstTimer()
-        _sendFtpFrame(buildFtpPayload({
-          seq,
-          session,
-          opcode: FTP_OP.BURST_READ_FILE,
-          size: CHUNK,
-          offset: 0,
-        }))
+        _sendFtpFrame(
+          buildFtpPayload({
+            seq,
+            session,
+            opcode: FTP_OP.BURST_READ_FILE,
+            size: CHUNK,
+            offset: 0,
+          })
+        )
       })
     }
 
@@ -699,10 +816,12 @@ function createInstance() {
     function burstRead(opts) {
       const run = () => _burstRead(opts)
       const next = ftpChain.then(run, run)
-      ftpChain = next.then(() => {}, () => {})
+      ftpChain = next.then(
+        () => {},
+        () => {}
+      )
       return next
     }
-
 
     function _encPath(path) {
       const t = new TextEncoder()
@@ -778,10 +897,7 @@ function createInstance() {
             timeout: 4000,
           })
         } catch (e) {
-          if (
-              e?.isFtpNak &&
-              (e.errorCode === 234 || e.errorCode === 0 || e.code === 'EOF')
-          ) {
+          if (e?.isFtpNak && (e.errorCode === 234 || e.errorCode === 0 || e.code === 'EOF')) {
             break
           }
 
@@ -803,13 +919,7 @@ function createInstance() {
       return entries
     }
 
-    async function _readWithSession({
-                                      session,
-                                      fileSize = -1,
-                                      onProgress,
-                                      allowEmpty = false,
-                                      isRetry = false,
-                                    }) {
+    async function _readWithSession({ session, fileSize = -1, onProgress, allowEmpty = false, isRetry = false }) {
       const chunks = []
       let offset = 0
       let totalBytes = 0
@@ -883,7 +993,6 @@ function createInstance() {
             usedSize = requestSize
             break
           } catch (e) {
-
             ftpWarn('[FTP] READ 失败，尝试下一个 size 或按 EOF 处理', {
               offset,
               totalBytes,
@@ -938,9 +1047,7 @@ function createInstance() {
 
           // 如果已知文件大小，并且还没读完，不要直接 break
           if (knownSize && offset < fileSize && !allowEmpty) {
-            const err = new Error(
-                `FTP READ 返回 0 字节，但还差 ${fileSize - offset} 字节`
-            )
+            const err = new Error(`FTP READ 返回 0 字节，但还差 ${fileSize - offset} 字节`)
             err.needReopen = !isRetry
             throw err
           }
@@ -984,8 +1091,7 @@ function createInstance() {
 
         if (knownSize && fileSize > 0) {
           const err = new Error(
-              `FTP 下载不完整：飞控报告 ${fileSize} 字节，实际读到 0 字节。`
-              + '空结果不能当作有效文件使用。'
+            `FTP 下载不完整：飞控报告 ${fileSize} 字节，实际读到 0 字节。` + '空结果不能当作有效文件使用。'
           )
           err.code = 'IncompleteDownload'
           err.expected = fileSize
@@ -1029,10 +1135,10 @@ function createInstance() {
          截断的 sysconfig.toml / param.xml 一旦被回传覆盖，就是直接损坏飞控配置。 */
       if (knownSize && totalBytes !== fileSize) {
         const err = new Error(
-            `FTP 下载不完整：飞控报告 ${fileSize} 字节，实际读到 ${totalBytes} 字节，`
-            + `缺 ${fileSize - totalBytes} 字节。`
-            + '本固件的 READ_FILE 读不出不足一整包的尾部，应走 BURST READ。'
-            + '禁止把这份内容当作完整文件使用，更不能回传覆盖。'
+          `FTP 下载不完整：飞控报告 ${fileSize} 字节，实际读到 ${totalBytes} 字节，` +
+            `缺 ${fileSize - totalBytes} 字节。` +
+            '本固件的 READ_FILE 读不出不足一整包的尾部，应走 BURST READ。' +
+            '禁止把这份内容当作完整文件使用，更不能回传覆盖。'
         )
         err.code = 'IncompleteDownload'
         err.expected = fileSize
@@ -1059,9 +1165,7 @@ function createInstance() {
 
       try {
         const dirEntries = await list(parentDir)
-        const targetFile = dirEntries.find(
-            e => e.name === targetFileName && e.type === 'file'
-        )
+        const targetFile = dirEntries.find((e) => e.name === targetFileName && e.type === 'file')
 
         if (targetFile && Number.isFinite(targetFile.size)) {
           fileSize = targetFile.size
@@ -1106,10 +1210,10 @@ function createInstance() {
 
       // 只是提示不一致，不要强行覆盖 LIST 大小
       if (
-          Number.isFinite(openResp.size) &&
-          openResp.size >= 0 &&
-          Number.isFinite(fileSize) &&
-          openResp.size !== fileSize
+        Number.isFinite(openResp.size) &&
+        openResp.size >= 0 &&
+        Number.isFinite(fileSize) &&
+        openResp.size !== fileSize
       ) {
         ftpWarn('[FTP] LIST size 与 OPEN size 不一致', {
           listSize: fileSize,
@@ -1220,9 +1324,7 @@ function createInstance() {
       } = options
       const mode = verifyCrc === false ? false : verify
 
-      const bytes = fileOrBytes instanceof Uint8Array
-          ? fileOrBytes
-          : new Uint8Array(await fileOrBytes.arrayBuffer())
+      const bytes = fileOrBytes instanceof Uint8Array ? fileOrBytes : new Uint8Array(await fileOrBytes.arrayBuffer())
 
       let session
 
@@ -1272,9 +1374,7 @@ function createInstance() {
               })
 
               if (Number(ackRes.offset) !== off) {
-                throw new Error(
-                    `分片偏移不匹配，期望${off}，返回${ackRes.offset}`
-                )
+                throw new Error(`分片偏移不匹配，期望${off}，返回${ackRes.offset}`)
               }
 
               writeSuccess = true
@@ -1319,9 +1419,7 @@ function createInstance() {
       result.remoteSize = backBytes.length
 
       if (backBytes.length !== bytes.length) {
-        const err = new Error(
-            `上传校验不通过：飞控上读到 ${backBytes.length} 字节，本地是 ${bytes.length} 字节`
-        )
+        const err = new Error(`上传校验不通过：飞控上读到 ${backBytes.length} 字节，本地是 ${bytes.length} 字节`)
         err.code = 'VerifySizeMismatch'
         throw err
       }
@@ -1333,7 +1431,7 @@ function createInstance() {
 
         if (remoteCrc !== localCrc) {
           const err = new Error(
-              `上传校验不通过：CRC32 不一致（本地 ${result.crc32Hex}，飞控 ${result.remoteCrc32Hex}）`
+            `上传校验不通过：CRC32 不一致（本地 ${result.crc32Hex}，飞控 ${result.remoteCrc32Hex}）`
           )
           err.code = 'VerifyCrcMismatch'
           throw err
@@ -1414,12 +1512,12 @@ function createInstance() {
   const param = (() => {
     const PT = PROTOCOL_ENUMS.MAV_PARAM_TYPE || {}
 
-    let explicitTarget = null   // { sys, comp }；不设置就跟随 HEARTBEAT 识别到的飞控地址
+    let explicitTarget = null // { sys, comp }；不设置就跟随 HEARTBEAT 识别到的飞控地址
     let taskChain = Promise.resolve()
-    let tapLink = null          // 仅自测替身路径使用，真链路的 link 在 connect() 里创建
+    let tapLink = null // 仅自测替身路径使用，真链路的 link 在 connect() 里创建
 
-    const store = new Map()     // name -> { name, value, type, typeName, index, count, at }
-    const waiters = new Map()   // name -> { resolve, timer }
+    const store = new Map() // name -> { name, value, type, typeName, index, count, at }
+    const waiters = new Map() // name -> { resolve, timer }
     let listSession = null
 
     const state = reactive({
@@ -1435,7 +1533,10 @@ function createInstance() {
     function nameOf(v) {
       if (typeof v === 'string') return v.split('\0')[0].trim()
       if (v instanceof Uint8Array) return textDecoder.decode(v).split('\0')[0].trim()
-      if (Array.isArray(v)) return String.fromCharCode(...v.map((b) => b & 0xff)).split('\0')[0].trim()
+      if (Array.isArray(v))
+        return String.fromCharCode(...v.map((b) => b & 0xff))
+          .split('\0')[0]
+          .trim()
       return ''
     }
 
@@ -1481,7 +1582,7 @@ function createInstance() {
       if (typeof echoed !== 'number') return false
       const info = typeKind(type)
       if (info.kind === 'int') return Math.round(wanted) === Math.round(echoed)
-      const tol = Math.max(1e-6, Math.abs(wanted) * 1e-6)   // float32 往返误差
+      const tol = Math.max(1e-6, Math.abs(wanted) * 1e-6) // float32 往返误差
       return Math.abs(wanted - echoed) <= tol
     }
 
@@ -1506,7 +1607,10 @@ function createInstance() {
     function _serialize(task) {
       const run = () => task()
       const next = taskChain.then(run, run)
-      taskChain = next.then(() => undefined, () => undefined)
+      taskChain = next.then(
+        () => undefined,
+        () => undefined
+      )
       return next
     }
 
@@ -1655,7 +1759,10 @@ function createInstance() {
         const { sys, comp } = _target()
         waiters.delete(key)
         _sendParam(MSG.PARAM_REQUEST_READ, {
-          target_system: sys, target_component: comp, param_id: key, param_index: -1,
+          target_system: sys,
+          target_component: comp,
+          param_id: key,
+          param_index: -1,
         })
         const entry = await _waitFor(key, timeout)
         if (!entry) {
@@ -1683,8 +1790,11 @@ function createInstance() {
       const { sys, comp } = _target()
       waiters.delete(key)
       _sendParam(MSG.PARAM_SET, {
-        target_system: sys, target_component: comp,
-        param_id: key, param_value: wire, param_type: type,
+        target_system: sys,
+        target_component: comp,
+        param_id: key,
+        param_value: wire,
+        param_type: type,
       })
       const echo = await _waitFor(key, timeout)
       if (!echo) {
@@ -1761,7 +1871,6 @@ function createInstance() {
     }
   })()
 
-
   /* ========== 消息分发与解析 ========== */
 
   /** rad -> deg */
@@ -1792,11 +1901,14 @@ function createInstance() {
 
     // 按生成表解码：raw=协议原值（位图/计数用），si=按单位标注换算后的展示值
     const d = decodeMessage(msg.msgid, msg.payload, { version: msg.version })
-    if (d) { d.sysid = msg.sysid; d.compid = msg.compid }
+    if (d) {
+      d.sysid = msg.sysid
+      d.compid = msg.compid
+    }
     const freshnessKey = {
       [MAVLINK_MSG_ID.VFR_HUD]: 'vfrHud',
       [MAVLINK_MSG_ID.ATTITUDE]: 'attitude',
-      [MAVLINK_MSG_ID.ATTITUDE_QUATERNION]: 'attitude',  // 这台 FMT 的实际姿态走四元数（31）而非欧拉角（30），二者点亮同一个 attitude 新鲜度
+      [MAVLINK_MSG_ID.ATTITUDE_QUATERNION]: 'attitude', // 这台 FMT 的实际姿态走四元数（31）而非欧拉角（30），二者点亮同一个 attitude 新鲜度
       // 这三条只写 data.imu（原始加计/陀螺/磁力计），从不写 data.attitude，所以它们不能证明
       // 姿态解算在输出。单独记到 'imu'，"飞控到底有没有推 ATTITUDE"才在界面上看得出来。
       [MAVLINK_MSG_ID.SCALED_IMU]: 'imu',
@@ -1825,9 +1937,13 @@ function createInstance() {
           vehicle.compid = msg.compid
           vehicle.detected = true
           deviceState.identity = {
-            detected: true, sysid: msg.sysid, compid: msg.compid,
-            type: R(raw, 'type'), autopilot: R(raw, 'autopilot'),
-            systemStatus: R(raw, 'system_status'), systemStatusLabel: systemState(R(raw, 'system_status')).label,
+            detected: true,
+            sysid: msg.sysid,
+            compid: msg.compid,
+            type: R(raw, 'type'),
+            autopilot: R(raw, 'autopilot'),
+            systemStatus: R(raw, 'system_status'),
+            systemStatusLabel: systemState(R(raw, 'system_status')).label,
           }
           vehicle.type = R(raw, 'type')
           vehicle.autopilot = R(raw, 'autopilot')
@@ -1853,7 +1969,7 @@ function createInstance() {
         case MAVLINK_MSG_ID.HIGHRES_IMU: {
           const imu = data.imu
           const name = messageName(msg.msgid) || ''
-          const pick = (field) => si?.[field] == null ? null : Number(si[field])
+          const pick = (field) => (si?.[field] == null ? null : Number(si[field]))
           imu.accel = [pick('xacc'), pick('yacc'), pick('zacc')]
           imu.gyro = [pick('xgyro'), pick('ygyro'), pick('zgyro')]
           imu.mag = [pick('xmag'), pick('ymag'), pick('zmag')]
@@ -1911,8 +2027,8 @@ function createInstance() {
           h.groundspeed = S(si, 'groundspeed')
           h.alt = S(si, 'alt')
           h.climb = S(si, 'climb')
-          h.heading = S(si, 'heading')   // [deg]：旧代码在这里读成了 int16 偏移 8（那是 heading 的原始位置，
-                                         // 但字段类型是 uint16，且 throttle 紧随其后），现在由表给出
+          h.heading = S(si, 'heading') // [deg]：旧代码在这里读成了 int16 偏移 8（那是 heading 的原始位置，
+          // 但字段类型是 uint16，且 throttle 紧随其后），现在由表给出
           h.throttle = S(si, 'throttle') // [%]
           break
         }
@@ -1921,14 +2037,18 @@ function createInstance() {
           s.onboardControlSensorsPresent = R(raw, 'onboard_control_sensors_present') >>> 0
           s.onboardControlSensorsEnabled = R(raw, 'onboard_control_sensors_enabled') >>> 0
           s.onboardControlSensorsHealth = R(raw, 'onboard_control_sensors_health') >>> 0
-          s.load = R(raw, 'load')            // 保持协议原值（0.1%），仪表盘按 /10 显示
+          s.load = R(raw, 'load') // 保持协议原值（0.1%），仪表盘按 /10 显示
           s.voltageBattery = S(si, 'voltage_battery') // V
           s.currentBattery = S(si, 'current_battery') // A
           s.batteryRemaining = R(raw, 'battery_remaining')
-          s.dropRateComm = S(si, 'drop_rate_comm')    // %
+          s.dropRateComm = S(si, 'drop_rate_comm') // %
           s.errorsComm = R(raw, 'errors_comm')
-          s.errorsCount = [R(raw, 'errors_count1'), R(raw, 'errors_count2'),
-            R(raw, 'errors_count3'), R(raw, 'errors_count4')]
+          s.errorsCount = [
+            R(raw, 'errors_count1'),
+            R(raw, 'errors_count2'),
+            R(raw, 'errors_count3'),
+            R(raw, 'errors_count4'),
+          ]
           data.battery.voltage = s.voltageBattery
           data.battery.current = s.currentBattery
           data.battery.percent = s.batteryRemaining
@@ -1938,12 +2058,14 @@ function createInstance() {
         case MAVLINK_MSG_ID.GLOBAL_POSITION_INT: {
           const g = data.gps
           g.timeBootMs = R(raw, 'time_boot_ms')
-          g.lat = S(si, 'lat')             // [degE7] -> deg（插值后的平滑位置）
+          g.lat = S(si, 'lat') // [degE7] -> deg（插值后的平滑位置）
           g.lon = S(si, 'lon')
-          g.alt = S(si, 'alt')             // [mm] -> m，海拔（MSL）
+          g.alt = S(si, 'alt') // [mm] -> m，海拔（MSL）
           g.relAlt = S(si, 'relative_alt') // [mm] -> m，相对起飞点
-          g.vx = S(si, 'vx'); g.vy = S(si, 'vy'); g.vz = S(si, 'vz') // [cm/s] -> m/s
-          g.heading = S(si, 'hdg')         // [cdeg] -> deg
+          g.vx = S(si, 'vx')
+          g.vy = S(si, 'vy')
+          g.vz = S(si, 'vz') // [cm/s] -> m/s
+          g.heading = S(si, 'hdg') // [cdeg] -> deg
           break
         }
         case MAVLINK_MSG_ID.GPS_RAW_INT: {
@@ -1977,8 +2099,12 @@ function createInstance() {
         case MAVLINK_MSG_ID.LOCAL_POSITION_NED: {
           const p = data.localPosition
           p.timeBootMs = R(raw, 'time_boot_ms')
-          p.x = S(si, 'x'); p.y = S(si, 'y'); p.z = S(si, 'z')       // NED，m
-          p.vx = S(si, 'vx'); p.vy = S(si, 'vy'); p.vz = S(si, 'vz') // m/s
+          p.x = S(si, 'x')
+          p.y = S(si, 'y')
+          p.z = S(si, 'z') // NED，m
+          p.vx = S(si, 'vx')
+          p.vy = S(si, 'vy')
+          p.vz = S(si, 'vz') // m/s
           break
         }
         case MAVLINK_MSG_ID.EXTENDED_SYS_STATE: {
@@ -2056,12 +2182,17 @@ function createInstance() {
 
   /** 自测/调试台用的发送替身：设置后出站帧交给它，不写串口。生产路径保持 null。 */
   let txTap = null
-  function setTxTap(fn) { txTap = typeof fn === 'function' ? fn : null }
+  function setTxTap(fn) {
+    txTap = typeof fn === 'function' ? fn : null
+  }
 
   /** 入队一帧。所有发送都走这里，保证同一条链路上的写入串行且顺序确定。 */
   function enqueue(frame) {
     assertFirmwareAvailable()
-    if (txTap) { txTap(frame); return }
+    if (txTap) {
+      txTap(frame)
+      return
+    }
     txQueue.push({ frame })
     if (!pumping) void _pump()
   }
@@ -2072,7 +2203,8 @@ function createInstance() {
   }
 
   function enqueueWritten(frame, signal, check) {
-    if (firmwareExclusive.value) return Promise.reject(rebootError('FIRMWARE_EXCLUSIVE', '固件烧写占用设备，MAVLink 暂不可发送'))
+    if (firmwareExclusive.value)
+      return Promise.reject(rebootError('FIRMWARE_EXCLUSIVE', '固件烧写占用设备，MAVLink 暂不可发送'))
     if (txTap || !transport?.writer) return Promise.reject(rebootError('NOT_WRITABLE', '没有真实可写串口'))
     return new Promise((resolve, reject) => {
       txQueue.push({ frame, resolve, reject, signal, check })
@@ -2086,7 +2218,10 @@ function createInstance() {
     try {
       while (txQueue.length && transport && transport === pumpTransport) {
         const item = txQueue.shift()
-        if (item.signal?.aborted) { item.reject?.(item.signal.reason); continue }
+        if (item.signal?.aborted) {
+          item.reject?.(item.signal.reason)
+          continue
+        }
         try {
           item.check?.()
           await _writeRaw(item.frame)
@@ -2103,7 +2238,7 @@ function createInstance() {
           if (dropped) console.warn(`[tx] 发送失败，丢弃队列中残留的 ${dropped} 帧`)
           break
         }
-        if (TX_DELAY_MS > 0) await new Promise(r => setTimeout(r, TX_DELAY_MS))
+        if (TX_DELAY_MS > 0) await new Promise((r) => setTimeout(r, TX_DELAY_MS))
       }
     } finally {
       // 任何异常路径都要复位，否则 pumping 卡在 true，之后再也没有人启动泵
@@ -2134,8 +2269,11 @@ function createInstance() {
   /* ========== 接收循环 ========== */
 
   function _onBytes(bytes) {
-    try { parser.push(bytes) }
-    catch (e) { error.value = `MAVLink 解析错误：${e?.message || e}` }
+    try {
+      parser.push(bytes)
+    } catch (e) {
+      error.value = `MAVLink 解析错误：${e?.message || e}`
+    }
   }
 
   async function _readWebSerial(reader) {
@@ -2148,7 +2286,9 @@ function createInstance() {
     } catch (e) {
       if (!manualDisconnect) error.value = `串口读取错误：${e?.message || e}`
     } finally {
-      try { reader.releaseLock() } catch {}
+      try {
+        reader.releaseLock()
+      } catch {}
       if (!manualDisconnect) _onTransportLost()
     }
   }
@@ -2162,7 +2302,8 @@ function createInstance() {
     const generation = connectionGeneration
     await cleanupPromise
     assertFirmwareAvailable()
-    if (signal?.aborted || generation !== connectionGeneration) throw signal?.reason || rebootError('RECONNECT_CANCELLED', '连接已取消')
+    if (signal?.aborted || generation !== connectionGeneration)
+      throw signal?.reason || rebootError('RECONNECT_CANCELLED', '连接已取消')
     manualDisconnect = false
     connecting.value = true
     error.value = ''
@@ -2185,7 +2326,11 @@ function createInstance() {
       _startHeartbeat()
       _startDeviceTicker()
       // 连接后自动打开 shell
-      if (!reconnecting.value) shellOpenTimer = setTimeout(() => { shellOpenTimer = null; if (connected.value) cli.open() }, 150)
+      if (!reconnecting.value)
+        shellOpenTimer = setTimeout(() => {
+          shellOpenTimer = null
+          if (connected.value) cli.open()
+        }, 150)
     } catch (e) {
       error.value = e?.message || String(e)
       await _cleanup()
@@ -2199,15 +2344,20 @@ function createInstance() {
     if (!('serial' in navigator)) {
       throw new Error('当前浏览器不支持 Web Serial API，请使用 Chrome/Edge，或改用 WebSocket 桥。')
     }
-    const port = authorizedPort || await navigator.serial.requestPort()
-    if (signal?.aborted || generation !== connectionGeneration) throw signal?.reason || rebootError('RECONNECT_CANCELLED', '连接已取消')
+    const port = authorizedPort || (await navigator.serial.requestPort())
+    if (signal?.aborted || generation !== connectionGeneration)
+      throw signal?.reason || rebootError('RECONNECT_CANCELLED', '连接已取消')
     await port.open({ baudRate: baud, dataBits: 8, stopBits: 1, parity: 'none', flowControl: 'none' })
     if (signal?.aborted || generation !== connectionGeneration) {
-      try { await port.close() } catch {}
+      try {
+        await port.close()
+      } catch {}
       throw signal?.reason || rebootError('RECONNECT_CANCELLED', '连接已取消')
     }
     if (!port.readable || !port.writable) {
-      try { await port.close() } catch {}
+      try {
+        await port.close()
+      } catch {}
       throw new Error('串口不可读写')
     }
     lastAuthorizedPort = port
@@ -2217,14 +2367,17 @@ function createInstance() {
     const reader = port.readable.getReader()
 
     transport = { type: 'webserial', port, reader, writer }
-    try { port.addEventListener('disconnect', _onTransportLost) } catch {}
+    try {
+      port.addEventListener('disconnect', _onTransportLost)
+    } catch {}
     readPromise = _readWebSerial(reader)
   }
 
   async function reconnectLast() {
     assertFirmwareAvailable()
     if (reconnecting.value || connected.value || connecting.value) return
-    if (!lastAuthorizedPort || !navigator.serial?.getPorts) throw new Error('没有可复用的串口授权，请点击连接飞控选择设备')
+    if (!lastAuthorizedPort || !navigator.serial?.getPorts)
+      throw new Error('没有可复用的串口授权，请点击连接飞控选择设备')
     const ports = await navigator.serial.getPorts()
     const port = ports.includes(lastAuthorizedPort) ? lastAuthorizedPort : null
     if (!port) throw new Error('上次串口未出现或授权已失效，请点击连接飞控重新选择')
@@ -2237,20 +2390,43 @@ function createInstance() {
     deviceState.transport = null
     deviceState.connectedAt = 0
     deviceState.lastRxAt = 0
-    deviceState.error = reason === 'disconnect' ? null : { code: reason, message: error.value || reason, at: Date.now() }
-    deviceState.identity = { detected: false, sysid: null, compid: null, type: null, autopilot: null, systemStatus: null, systemStatusLabel: '—' }
+    deviceState.error =
+      reason === 'disconnect' ? null : { code: reason, message: error.value || reason, at: Date.now() }
+    deviceState.identity = {
+      detected: false,
+      sysid: null,
+      compid: null,
+      type: null,
+      autopilot: null,
+      systemStatus: null,
+      systemStatusLabel: '—',
+    }
     deviceState.heartbeat = { lastAt: 0, ageMs: null, healthy: false }
-    Object.keys(deviceState.freshness).forEach((key) => { deviceState.freshness[key] = 0 })
-    Object.keys(deviceState.valid).forEach((key) => { deviceState.valid[key] = false })
-    vehicle.sysid = 1; vehicle.compid = 1; vehicle.detected = false
-    vehicle.type = 0; vehicle.autopilot = 0; vehicle.baseMode = 0; vehicle.customMode = 0
-    vehicle.armed = false; vehicle.modeCode = 'UNKNOWN_0'; vehicle.modeName = '未知'
-    vehicle.systemStatus = 0; vehicle.systemStatusLabel = '—'; vehicle.lastHeartbeatAt = 0
+    Object.keys(deviceState.freshness).forEach((key) => {
+      deviceState.freshness[key] = 0
+    })
+    Object.keys(deviceState.valid).forEach((key) => {
+      deviceState.valid[key] = false
+    })
+    vehicle.sysid = 1
+    vehicle.compid = 1
+    vehicle.detected = false
+    vehicle.type = 0
+    vehicle.autopilot = 0
+    vehicle.baseMode = 0
+    vehicle.customMode = 0
+    vehicle.armed = false
+    vehicle.modeCode = 'UNKNOWN_0'
+    vehicle.modeName = '未知'
+    vehicle.systemStatus = 0
+    vehicle.systemStatusLabel = '—'
+    vehicle.lastHeartbeatAt = 0
     // 姿态来源跟着设备会话一起清：换一台飞控后不能拿上一台的"权威源"结论继续用
     _attSource.authority = 'none'
     _attSource.lastAt = 0
     _attSource.lastMsgId = null
-    data.statusText = ''; data.statusLogs.splice(0)
+    data.statusText = ''
+    data.statusLogs.splice(0)
   }
 
   function assertFirmwareAvailable() {
@@ -2260,7 +2436,8 @@ function createInstance() {
   async function acquireFirmwareExclusive() {
     assertFirmwareAvailable()
     if (connecting.value || reconnecting.value) throw rebootError('CONNECT_BUSY', '连接或重连进行中，不能开始固件烧写')
-    if (session.transactionLocked || session.state.busy) throw rebootError('CONSOLE_BUSY', '控制台或参数保存事务正忙，不能开始固件烧写')
+    if (session.transactionLocked || session.state.busy)
+      throw rebootError('CONSOLE_BUSY', '控制台或参数保存事务正忙，不能开始固件烧写')
     if (connected.value && vehicle.armed) throw rebootError('ARMED', '飞控已解锁，禁止固件烧写')
     firmwareExclusive.value = true
     let released = false
@@ -2272,7 +2449,8 @@ function createInstance() {
     try {
       await disconnect()
       await cleanupPromise
-      if (serialCloseError) throw rebootError('SERIAL_RELEASE_FAILED', `串口释放失败：${serialCloseError.message || serialCloseError}`)
+      if (serialCloseError)
+        throw rebootError('SERIAL_RELEASE_FAILED', `串口释放失败：${serialCloseError.message || serialCloseError}`)
       return release
     } catch (error) {
       error.ownershipUncertain = true
@@ -2302,36 +2480,62 @@ function createInstance() {
   }
 
   function _cleanup() {
-    clearTimeout(shellOpenTimer); shellOpenTimer = null
+    clearTimeout(shellOpenTimer)
+    shellOpenTimer = null
     const run = async () => {
-    _stopHeartbeat()
-    if (!transport) return
-    const t = transport
-    const reading = readPromise
-    readPromise = null
-    transport = null
-    discardQueue(new Error('串口已关闭'))
-    try {
-      if (t.type === 'webserial') {
-        try { t.port.removeEventListener('disconnect', _onTransportLost) } catch {}
-        try { await t.reader.cancel() } catch {}
-        if (reading) { try { await reading } catch {} }
-        try { await t.writer.close() } catch {}
-        try { t.writer.releaseLock() } catch {}
-        try { await t.port.close(); serialCloseError = null } catch (error) { serialCloseError = error }
-      } else if (t.type === 'websocket') {
-        t.ws.onclose = t.ws.onerror = t.ws.onmessage = null
-        try { t.ws.close() } catch {}
-      }
-    } catch {}
+      _stopHeartbeat()
+      if (!transport) return
+      const t = transport
+      const reading = readPromise
+      readPromise = null
+      transport = null
+      discardQueue(new Error('串口已关闭'))
+      try {
+        if (t.type === 'webserial') {
+          try {
+            t.port.removeEventListener('disconnect', _onTransportLost)
+          } catch {}
+          try {
+            await t.reader.cancel()
+          } catch {}
+          if (reading) {
+            try {
+              await reading
+            } catch {}
+          }
+          try {
+            await t.writer.close()
+          } catch {}
+          try {
+            t.writer.releaseLock()
+          } catch {}
+          try {
+            await t.port.close()
+            serialCloseError = null
+          } catch (error) {
+            serialCloseError = error
+          }
+        } else if (t.type === 'websocket') {
+          t.ws.onclose = t.ws.onerror = t.ws.onmessage = null
+          try {
+            t.ws.close()
+          } catch {}
+        }
+      } catch {}
     }
     cleanupPromise = cleanupPromise.then(run, run)
     return cleanupPromise
   }
 
   function assertRebootSafe() {
-    if (!connected.value || !transport?.writer || txTap || deviceState.phase !== 'online' ||
-        !deviceState.heartbeat.healthy || Date.now() - vehicle.lastHeartbeatAt > 3000) {
+    if (
+      !connected.value ||
+      !transport?.writer ||
+      txTap ||
+      deviceState.phase !== 'online' ||
+      !deviceState.heartbeat.healthy ||
+      Date.now() - vehicle.lastHeartbeatAt > 3000
+    ) {
       throw rebootError('NOT_WRITABLE', '链路不可写或飞控心跳不新鲜，不能重启')
     }
     if (vehicle.armed) throw rebootError('ARMED', '飞控已解锁，禁止重启')
@@ -2340,19 +2544,29 @@ function createInstance() {
   const rebootReconnect = createRebootReconnect({
     assertSafe: assertRebootSafe,
     capture: () => ({ port: lastAuthorizedPort, info: lastPortInfo, sysid: vehicle.sysid, compid: vehicle.compid }),
-    subscribe: fn => on('reconnect-evidence', fn),
-    setActive: value => { reconnecting.value = value },
-    setStage: stage => { reconnectStatus.value = stage },
+    subscribe: (fn) => on('reconnect-evidence', fn),
+    setActive: (value) => {
+      reconnecting.value = value
+    },
+    setStage: (stage) => {
+      reconnectStatus.value = stage
+    },
     isConnected: () => connected.value,
     getPorts: () => navigator.serial.getPorts(),
     connect: (port, signal) => connect(baudRate.value, port, signal),
-    sendReboot: signal => enqueueWritten(link.encodeSerialControl(textEncoder.encode('reboot\r'), {
-      baudRate: 0, timeout: 200,
-      flags: SERIAL_CONTROL_FLAG.REPLY | SERIAL_CONTROL_FLAG.EXCLUSIVE,
-      device: SERIAL_CONTROL_DEV.SHELL,
-    }), signal, assertRebootSafe),
+    sendReboot: (signal) =>
+      enqueueWritten(
+        link.encodeSerialControl(textEncoder.encode('reboot\r'), {
+          baudRate: 0,
+          timeout: 200,
+          flags: SERIAL_CONTROL_FLAG.REPLY | SERIAL_CONTROL_FLAG.EXCLUSIVE,
+          device: SERIAL_CONTROL_DEV.SHELL,
+        }),
+        signal,
+        assertRebootSafe
+      ),
   })
-  const rebootAndReconnect = options => {
+  const rebootAndReconnect = (options) => {
     assertFirmwareAvailable()
     return rebootReconnect.run(options)
   }
@@ -2380,8 +2594,14 @@ function createInstance() {
     heartbeatTimer = setInterval(send, 1000)
   }
   function _stopHeartbeat() {
-    if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null }
-    if (deviceTicker) { clearInterval(deviceTicker); deviceTicker = null }
+    if (heartbeatTimer) {
+      clearInterval(heartbeatTimer)
+      heartbeatTimer = null
+    }
+    if (deviceTicker) {
+      clearInterval(deviceTicker)
+      deviceTicker = null
+    }
   }
 
   function _startDeviceTicker() {
@@ -2401,8 +2621,11 @@ function createInstance() {
   function saveBlob(blob, filename) {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
-    a.href = url; a.download = filename
-    document.body.appendChild(a); a.click(); a.remove()
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
 
@@ -2437,13 +2660,31 @@ function createInstance() {
       lastMsgId: _attSource.lastMsgId,
       lastAt: _attSource.lastAt,
       ageMs: _attSource.lastAt ? Date.now() - _attSource.lastAt : null,
-      stale: _attSource.authority !== 'none' && (!_attSource.lastAt || Date.now() - _attSource.lastAt > ATTITUDE_AUTHORITY_STALE_MS),
-      label: _attSource.authority === 'quaternion' ? 'ATTITUDE_QUATERNION(31)'
-        : _attSource.authority === 'euler' ? 'ATTITUDE(30) 降级'
-          : '未收到姿态',
+      stale:
+        _attSource.authority !== 'none' &&
+        (!_attSource.lastAt || Date.now() - _attSource.lastAt > ATTITUDE_AUTHORITY_STALE_MS),
+      label:
+        _attSource.authority === 'quaternion'
+          ? 'ATTITUDE_QUATERNION(31)'
+          : _attSource.authority === 'euler'
+            ? 'ATTITUDE(30) 降级'
+            : '未收到姿态',
     })),
-    canOperate: computed(() => !firmwareExclusive.value && !reconnecting.value && deviceState.phase === 'online' && deviceState.heartbeat.healthy),
-    canWrite: computed(() => !firmwareExclusive.value && !reconnecting.value && deviceState.phase === 'online' && deviceState.heartbeat.healthy && !vehicle.armed),
+    canOperate: computed(
+      () =>
+        !firmwareExclusive.value &&
+        !reconnecting.value &&
+        deviceState.phase === 'online' &&
+        deviceState.heartbeat.healthy
+    ),
+    canWrite: computed(
+      () =>
+        !firmwareExclusive.value &&
+        !reconnecting.value &&
+        deviceState.phase === 'online' &&
+        deviceState.heartbeat.healthy &&
+        !vehicle.armed
+    ),
     // 链路体检（S0a）：按 msgid 的累计收发快照，解析器自己维护，页面每次现取，不留副本
     msgCensus: () => {
       const by = parser && parser.stats ? parser.stats.byMsgid : null
@@ -2460,11 +2701,16 @@ function createInstance() {
     handleMessage: _handleMessage,
 
     // 连接 API
-    connect, disconnect, rebootAndReconnect, reconnectLast, acquireFirmwareExclusive,
+    connect,
+    disconnect,
+    rebootAndReconnect,
+    reconnectLast,
+    acquireFirmwareExclusive,
     hasPreviousPort: computed(() => deviceState.sessionId > 0 && !!lastAuthorizedPort),
 
     // 事件 API
-    on, off,
+    on,
+    off,
 
     // 发送任意消息
     sendMessage,

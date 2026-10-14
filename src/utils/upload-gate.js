@@ -95,28 +95,28 @@ export function gateUploadFile(f = {}) {
   if (!f.loaded || !f.present) {
     const why = errText ? `下载记录：${errText}。` : ''
     return make(
-        GATE_CODE.NOT_LOADED,
-        false,
-        `${label} 没有从飞控完整下载到过（present=${f.present ? '是' : '否'}，loaded=${f.loaded ? '是' : '否'}）。`
-        + `${why}禁止回传：飞控上那份文件会被覆盖成一份我们并不确定完整的内容。`
-        + '请先重新读取配置文件，确认下载成功再保存。',
+      GATE_CODE.NOT_LOADED,
+      false,
+      `${label} 没有从飞控完整下载到过（present=${f.present ? '是' : '否'}，loaded=${f.loaded ? '是' : '否'}）。` +
+        `${why}禁止回传：飞控上那份文件会被覆盖成一份我们并不确定完整的内容。` +
+        '请先重新读取配置文件，确认下载成功再保存。'
     )
   }
 
   if (!(size > 0)) {
     return make(
-        GATE_CODE.NO_SIZE,
-        false,
-        `${label} 下载时飞控没有上报文件大小，长度核对无从做起，禁止回传。`
-        + '请重新读取配置文件（下载侧会硬核对字节数）。',
+      GATE_CODE.NO_SIZE,
+      false,
+      `${label} 下载时飞控没有上报文件大小，长度核对无从做起，禁止回传。` +
+        '请重新读取配置文件（下载侧会硬核对字节数）。'
     )
   }
 
   if (!(bytes > 0)) {
     return make(
-        GATE_CODE.EMPTY_CONTENT,
-        false,
-        `${label} 当前内容是空的（0 字节），禁止回传：这等于把飞控的配置文件清成空文件。`,
+      GATE_CODE.EMPTY_CONTENT,
+      false,
+      `${label} 当前内容是空的（0 字节），禁止回传：这等于把飞控的配置文件清成空文件。`
     )
   }
 
@@ -126,40 +126,40 @@ export function gateUploadFile(f = {}) {
 
   if (delta !== 0 && changes === 0) {
     return make(
-        GATE_CODE.UNEXPLAINED_DELTA,
-        false,
-        `${label} 的文本长度与下载时不同（飞控 ${fmtBytes(size)} 字节 → 本地 ${fmtBytes(bytes)} 字节），`
-        + '但一条定点改动都拿不出来：说明这份文本不是从飞控原文改出来的（多半是整本重新序列化丢了东西）。'
-        + '禁止回传。',
+      GATE_CODE.UNEXPLAINED_DELTA,
+      false,
+      `${label} 的文本长度与下载时不同（飞控 ${fmtBytes(size)} 字节 → 本地 ${fmtBytes(bytes)} 字节），` +
+        '但一条定点改动都拿不出来：说明这份文本不是从飞控原文改出来的（多半是整本重新序列化丢了东西）。' +
+        '禁止回传。'
     )
   }
 
   if (ratio >= SHRINK_BLOCK_RATIO && !force) {
     return make(
-        GATE_CODE.SHRUNK,
-        false,
-        `${label} 比飞控上的原文短了 ${fmtBytes(shortfall)} 字节（${fmtPct(shortfall, size)}，`
-        + `阈值 ${fmtPct(SHRINK_BLOCK_RATIO * size, size)}），改动 ${changes} 处。`
-        + '这么大的缩短不像是改参数改出来的，禁止回传；请核对改动明细或放弃改动。',
+      GATE_CODE.SHRUNK,
+      false,
+      `${label} 比飞控上的原文短了 ${fmtBytes(shortfall)} 字节（${fmtPct(shortfall, size)}，` +
+        `阈值 ${fmtPct(SHRINK_BLOCK_RATIO * size, size)}），改动 ${changes} 处。` +
+        '这么大的缩短不像是改参数改出来的，禁止回传；请核对改动明细或放弃改动。'
     )
   }
 
   if (ratio >= SHRINK_BLOCK_RATIO && force) {
     return make(
-        GATE_CODE.OK,
-        true,
-        `已强制回传 ${label}：内容比原文短 ${fmtBytes(shortfall)} 字节（${fmtPct(shortfall, size)}）。`,
-        `强制放行：${label} 缩短 ${fmtBytes(shortfall)} 字节（${fmtPct(shortfall, size)}），飞控开机读配置时可能少参数。`,
+      GATE_CODE.OK,
+      true,
+      `已强制回传 ${label}：内容比原文短 ${fmtBytes(shortfall)} 字节（${fmtPct(shortfall, size)}）。`,
+      `强制放行：${label} 缩短 ${fmtBytes(shortfall)} 字节（${fmtPct(shortfall, size)}），飞控开机读配置时可能少参数。`
     )
   }
 
   if (ratio >= SHRINK_WARN_RATIO) {
     return make(
-        GATE_CODE.OK,
-        true,
-        '',
-        `${label} 比原文短 ${fmtBytes(shortfall)} 字节（${fmtPct(shortfall, size)}），`
-        + `改动 ${changes} 处；上传后会整份回读比 CRC32。`,
+      GATE_CODE.OK,
+      true,
+      '',
+      `${label} 比原文短 ${fmtBytes(shortfall)} 字节（${fmtPct(shortfall, size)}），` +
+        `改动 ${changes} 处；上传后会整份回读比 CRC32。`
     )
   }
 
@@ -202,10 +202,4 @@ export function planUpload(opts = {}) {
     blocked,
     warns,
   }
-}
-
-/** 把判定结果拼成一段中文，给 store 的 error / 界面的红字用 */
-export function gateText(results) {
-  const list = Array.isArray(results) ? results : [results]
-  return list.filter(Boolean).map((r) => r.reason || r.warn || '').filter(Boolean).join('；')
 }

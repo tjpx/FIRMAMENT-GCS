@@ -5,7 +5,7 @@
            原先整条顶栏刷成主色（而且主色是 EP 默认蓝），夜间模式等于一条发亮的蓝杠，
            还把"外壳"和"飞行数据"混成一团；外壳退到背景，数据才显眼。 -->
       <el-header class="dsh-header">
-        <el-row :gutter="8" align="middle" style="height: 100%;">
+        <el-row :gutter="8" align="middle" style="height: 100%">
           <el-col :span="3" class="dsh-brand">
             <span class="dsh-brand-mark" aria-hidden="true"></span>
             <strong>FIRMAMENT GCS</strong>
@@ -32,14 +32,16 @@
             </span>
             <!-- 解锁与飞行模式：HEARTBEAT 的 base_mode 解锁位 + PX4 主/子模式编码 -->
             <span class="status-item">
-              <el-tag size="small" :type="vehicle.armed ? 'danger' : 'success'"
-                      :effect="vehicle.armed ? 'dark' : 'plain'">
+              <el-tag
+                size="small"
+                :type="vehicle.armed ? 'danger' : 'success'"
+                :effect="vehicle.armed ? 'dark' : 'plain'"
+              >
                 {{ vehicle.armed ? '已解锁' : '未解锁' }}
               </el-tag>
             </span>
             <span class="status-item">
-              <el-tag size="small" :effect="vehicle.detected ? 'dark' : 'plain'" type="info"
-                      :title="vehicle.modeCode">
+              <el-tag size="small" :effect="vehicle.detected ? 'dark' : 'plain'" type="info" :title="vehicle.modeCode">
                 {{ vehicle.detected ? vehicle.modeName : '模式 --' }}
               </el-tag>
             </span>
@@ -50,57 +52,87 @@
             <div class="dsh-theme-switch" role="group" aria-label="界面主题">
               <el-tooltip v-for="m in MODE_ORDER" :key="m" :content="MODE_TIP[m]" placement="bottom" :show-after="200">
                 <button
-                    type="button"
-                    class="dsh-theme-btn"
-                    :class="{ 'is-active': mode === m }"
-                    :aria-pressed="mode === m ? 'true' : 'false'"
-                    @click="setMode(m)"
+                  type="button"
+                  class="dsh-theme-btn"
+                  :class="{ 'is-active': mode === m }"
+                  :aria-pressed="mode === m ? 'true' : 'false'"
+                  @click="setMode(m)"
                 >
                   <el-icon :size="14"><component :is="MODE_ICON[m]" /></el-icon>
                 </button>
               </el-tooltip>
             </div>
-            <el-tag v-if="motorTestState.active || motorTestState.uncertain" class="dsh-danger-breathe" size="small" type="danger" effect="dark">{{ motorTestState.uncertain ? '电机停止未确认' : '电机测试中' }}</el-tag>
-            <el-tag v-else-if="crcAlarm" class="dsh-danger-breathe" size="small" type="danger" effect="dark" title="最近一秒至少20帧，CRC错误占比超过5%">CRC 错误率过高</el-tag>
+            <el-tag
+              v-if="motorTestState.active || motorTestState.uncertain"
+              class="dsh-danger-breathe"
+              size="small"
+              type="danger"
+              effect="dark"
+              >{{ motorTestState.uncertain ? '电机停止未确认' : '电机测试中' }}</el-tag
+            >
+            <el-tag
+              v-else-if="crcAlarm"
+              class="dsh-danger-breathe"
+              size="small"
+              type="danger"
+              effect="dark"
+              title="最近一秒至少20帧，CRC错误占比超过5%"
+              >CRC 错误率过高</el-tag
+            >
             <span class="conn-text" :data-state="connState">
               <i class="dsh-dot" aria-hidden="true"></i>{{ statusText }}
             </span>
             <el-tag v-if="linkWarn" size="small" type="warning" effect="dark">{{ linkWarn }}</el-tag>
-            <el-button v-if="data.statusLogs.length" size="small" plain @click="alertOpen = true">告警 {{ data.statusLogs.length }}</el-button>
+            <el-button v-if="data.statusLogs.length" size="small" plain @click="alertOpen = true"
+              >告警 {{ data.statusLogs.length }}</el-button
+            >
             <!-- 飞控最新一条 STATUSTEXT：等级决定配色，故障不再和调试信息长一个样 -->
-            <el-tag v-if="lastStatus" size="small" :type="lastStatus.type" effect="light" class="status-msg"
-                    :title="`${lastStatus.severityLabel} · ${lastStatus.time ? new Date(lastStatus.time).toLocaleTimeString() : ''}`">
+            <el-tag
+              v-if="lastStatus"
+              size="small"
+              :type="lastStatus.type"
+              effect="light"
+              class="status-msg"
+              :title="`${lastStatus.severityLabel} · ${lastStatus.time ? new Date(lastStatus.time).toLocaleTimeString() : ''}`"
+            >
               {{ lastStatus.text }}
             </el-tag>
-            <el-button v-if="mav.reconnecting.value" @click="mav.disconnect()" plain size="small" type="danger">取消重连</el-button>
-            <el-button v-else-if="!connected" :disabled="mav.firmwareExclusive.value" class="!ml-0" plain @click="connectDialog = true" size="small">
+            <el-button v-if="mav.reconnecting.value" @click="mav.disconnect()" plain size="small" type="danger"
+              >取消重连</el-button
+            >
+            <el-button
+              v-else-if="!connected"
+              :disabled="mav.firmwareExclusive.value"
+              class="!ml-0"
+              plain
+              @click="connectDialog = true"
+              size="small"
+            >
               连接飞控
             </el-button>
-            <el-button v-else @click="mav.disconnect()" plain size="small" type="danger">
-              断开连接
-            </el-button>
+            <el-button v-else @click="mav.disconnect()" plain size="small" type="danger"> 断开连接 </el-button>
           </el-col>
         </el-row>
       </el-header>
 
-      <el-container style="flex: 1; overflow: hidden; padding: 0;">
+      <el-container style="flex: 1; overflow: hidden; padding: 0">
         <!-- 左侧导航：图标 + 文字的行式条目，当前项有主色指示条。
              原先是 12 个主色实心按钮（蓝药丸墙）：没图标、没当前页感，找页面只能逐个读中文。 -->
         <el-aside v-if="!onHomeWorkspace" class="dsh-nav">
           <nav class="dsh-nav-list" aria-label="功能导航">
             <router-link
-                v-for="item in visibleMenu"
-                :key="item.path"
-                :to="item.path"
-                custom
-                v-slot="{ href, navigate, isExactActive }"
+              v-for="item in visibleMenu"
+              :key="item.path"
+              :to="item.path"
+              custom
+              v-slot="{ href, navigate, isExactActive }"
             >
               <a
-                  class="dsh-nav-item"
-                  :class="{ 'is-active': isExactActive }"
-                  :href="href"
-                  :aria-current="isExactActive ? 'page' : undefined"
-                  @click="navigate"
+                class="dsh-nav-item"
+                :class="{ 'is-active': isExactActive }"
+                :href="href"
+                :aria-current="isExactActive ? 'page' : undefined"
+                @click="navigate"
               >
                 <el-icon class="dsh-nav-icon" :size="15"><component :is="NAV_ICONS[item.path]" /></el-icon>
                 <span class="dsh-nav-label">{{ item.label }}</span>
@@ -111,12 +143,29 @@
 
         <!-- 主内容 -->
         <el-main class="dsh-main">
-          <ConnectionStateNotice v-if="!onHomeWorkspace" :state="!connected ? 'disconnected' : deviceState.phase === 'stale' ? 'stale' : canOperate ? 'online' : 'waiting'" :cleared="false" />
-          <el-alert v-if="motorTestState.uncertain" title="电机输出停止未确认" type="error" :closable="false" show-icon description="断链、超时或离开页面不能保证电机停止。请先物理切断动力并确认停止。">
+          <ConnectionStateNotice
+            v-if="!onHomeWorkspace"
+            :state="
+              !connected ? 'disconnected' : deviceState.phase === 'stale' ? 'stale' : canOperate ? 'online' : 'waiting'
+            "
+            :cleared="false"
+          />
+          <el-alert
+            v-if="motorTestState.uncertain"
+            title="电机输出停止未确认"
+            type="error"
+            :closable="false"
+            show-icon
+            description="断链、超时或离开页面不能保证电机停止。请先物理切断动力并确认停止。"
+          >
             <el-button size="small" type="danger" plain @click="confirmPhysicalStop">确认已物理断开动力</el-button>
           </el-alert>
           <PageFunctionHelp />
-          <router-view @open-connect="connectDialog = true" @motor-test-state="updateMotorTestState" @open-config-review="saveBarRef?.showPanel()" />
+          <router-view
+            @open-connect="connectDialog = true"
+            @motor-test-state="updateMotorTestState"
+            @open-config-review="saveBarRef?.showPanel()"
+          />
         </el-main>
       </el-container>
 
@@ -127,13 +176,25 @@
             <span class="foot-stat">应用版本 v{{ appVersion }}</span>
             <el-button size="small" text @click="searchRef?.open()" title="搜索参数（/）">搜索 /</el-button>
             <el-button size="small" text @click="quickFtp" :disabled="!connected">下载机载文件</el-button>
-            <el-button v-if="!connected && mav.hasPreviousPort.value" size="small" text :loading="connecting" :disabled="mav.reconnecting.value" @click="reconnectPrevious">重连上次串口</el-button>
+            <el-button
+              v-if="!connected && mav.hasPreviousPort.value"
+              size="small"
+              text
+              :loading="connecting"
+              :disabled="mav.reconnecting.value"
+              @click="reconnectPrevious"
+              >重连上次串口</el-button
+            >
             <span v-if="connected" class="foot-stat dsh-num">{{ rxStallText }}</span>
-
           </el-col>
           <el-col :span="7" class="dsh-foot-right">
-            <SaveBar ref="saveBarRef" v-show="connected || mav.reconnecting.value || mav.reconnectStatus.value === 'failed'" @saved="finishSaveAndLeave" @save-failed="leaveConfig.settle(false)" />
-             <span class="foot-stat" :title="'主题：' + modeText + '（切换入口在顶栏右侧）'">
+            <SaveBar
+              ref="saveBarRef"
+              v-show="connected || mav.reconnecting.value || mav.reconnectStatus.value === 'failed'"
+              @saved="finishSaveAndLeave"
+              @save-failed="leaveConfig.settle(false)"
+            />
+            <span class="foot-stat" :title="'主题：' + modeText + '（切换入口在顶栏右侧）'">
               {{ modeText }}
             </span>
           </el-col>
@@ -143,20 +204,59 @@
 
     <ConfigSearch ref="searchRef" @navigate="navigateSearch" />
     <el-drawer v-model="alertOpen" title="告警中心" size="380px">
-      <el-alert v-for="(entry, i) in [...data.statusLogs].reverse()" :key="`${entry.time}-${i}`" :type="entry.type || 'info'" :closable="false" show-icon class="alert-entry" :title="entry.text || '未提供文字'">
-        <template #default><div class="alert-detail">{{ entry.severityLabel || '未知等级' }} · {{ entry.time ? new Date(entry.time).toLocaleTimeString() : '时间未知' }}</div><el-button v-if="entry.type === 'danger'" size="small" text type="danger" @click="router.push('/preflight'); alertOpen = false">打开准备飞行检查</el-button></template>
+      <el-alert
+        v-for="(entry, i) in [...data.statusLogs].reverse()"
+        :key="`${entry.time}-${i}`"
+        :type="entry.type || 'info'"
+        :closable="false"
+        show-icon
+        class="alert-entry"
+        :title="entry.text || '未提供文字'"
+      >
+        <template #default
+          ><div class="alert-detail">
+            {{ entry.severityLabel || '未知等级' }} ·
+            {{ entry.time ? new Date(entry.time).toLocaleTimeString() : '时间未知' }}
+          </div>
+          <el-button v-if="entry.type === 'danger'" size="small" text type="danger" @click="goPreflight"
+            >打开准备飞行检查</el-button
+          ></template
+        >
       </el-alert>
-      <EmptyStateAction v-if="!data.statusLogs.length" title="尚无状态告警" reason="当前会话尚未收到 STATUSTEXT；空列表不代表安全检查通过。" />
+      <EmptyStateAction
+        v-if="!data.statusLogs.length"
+        title="尚无状态告警"
+        reason="当前会话尚未收到 STATUSTEXT；空列表不代表安全检查通过。"
+      />
     </el-drawer>
 
-    <el-dialog :model-value="leaveConfig.visible" title="离开前处理配置改动" width="min(480px, calc(100vw - 32px))"
-               :close-on-click-modal="false" @update:model-value="value => { if (!value) leaveConfig.settle(false) }">
-      <p>当前有 <strong class="dsh-num">{{ fcConfig.changeList.length }}</strong> 项未保存修改。</p>
-      <p class="tip">保存并离开会将运行参数写入飞控并执行 param save，核对持久化结果后离开，不重启；系统配置文件修改校验通过后才自动重启重连。丢弃只还原本地草稿，不撤销已发生的机载 RAM 写入。</p>
+    <el-dialog
+      :model-value="leaveConfig.visible"
+      title="离开前处理配置改动"
+      width="min(480px, calc(100vw - 32px))"
+      :close-on-click-modal="false"
+      @update:model-value="
+        (value) => {
+          if (!value) leaveConfig.settle(false)
+        }
+      "
+    >
+      <p>
+        当前有 <strong class="dsh-num">{{ fcConfig.changeList.length }}</strong> 项未保存修改。
+      </p>
+      <p class="tip">
+        保存并离开会将运行参数写入飞控并执行 param
+        save，核对持久化结果后离开，不重启；系统配置文件修改校验通过后才自动重启重连。丢弃只还原本地草稿，不撤销已发生的机载
+        RAM 写入。
+      </p>
       <template #footer>
         <el-button size="small" @click="leaveConfig.settle(false)">留在本页</el-button>
-        <el-button size="small" type="danger" plain :disabled="!!fcConfig.busy" @click="discardAndLeave">丢弃改动并离开</el-button>
-        <el-button size="small" type="primary" :disabled="!connected || !!fcConfig.busy" @click="reviewAndLeave">保存并离开</el-button>
+        <el-button size="small" type="danger" plain :disabled="!!fcConfig.busy" @click="discardAndLeave"
+          >丢弃改动并离开</el-button
+        >
+        <el-button size="small" type="primary" :disabled="!connected || !!fcConfig.busy" @click="reviewAndLeave"
+          >保存并离开</el-button
+        >
       </template>
     </el-dialog>
 
@@ -175,20 +275,17 @@
         </el-form-item>
         <el-form-item label="目标 ID">
           <el-input-number v-model="targetSys" :min="1" :max="255" size="small" />
-          <span style="margin: 0 6px;">/</span>
+          <span style="margin: 0 6px">/</span>
           <el-input-number v-model="targetComp" :min="1" :max="255" size="small" />
           <span class="tip">（自动识别时无需修改）</span>
         </el-form-item>
-        <el-alert v-if="mav.error" type="error" :closable="false" :title="mav.error" style="margin-top: 8px;" />
+        <el-alert v-if="mav.error" type="error" :closable="false" :title="mav.error" style="margin-top: 8px" />
       </el-form>
       <template #footer>
         <el-button @click="connectDialog = false">取消</el-button>
-        <el-button type="primary" :loading="connecting" @click="handleConnect">
-          连接串口
-        </el-button>
+        <el-button type="primary" :loading="connecting" @click="handleConnect"> 连接串口 </el-button>
       </template>
     </el-dialog>
-
   </div>
 </template>
 
@@ -197,9 +294,29 @@ import { ref, computed, nextTick, onBeforeUnmount, provide, inject, watch } from
 // 图标按需具名导入（不整包引入）。名字全部核对过 @element-plus/icons-vue 的组件清单：
 // first-aid-panel 这类不存在的名字不能用，链路体检页改走 Histogram。
 import {
-  Connection, Cpu, Document, FolderOpened, Histogram, Monitor, Moon, Odometer, Upload,
-  PartlyCloudy, Setting, SetUp, Share, Sunny, Tickets, VideoPlay, List,
-  House, Collection, Lightning, Warning, CircleCheck, DataLine,
+  Connection,
+  Cpu,
+  Document,
+  FolderOpened,
+  Histogram,
+  Monitor,
+  Moon,
+  Odometer,
+  Upload,
+  PartlyCloudy,
+  Setting,
+  SetUp,
+  Share,
+  Sunny,
+  Tickets,
+  VideoPlay,
+  List,
+  House,
+  Collection,
+  Lightning,
+  Warning,
+  CircleCheck,
+  DataLine,
 } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { useMavlink } from './composables/useMavlink.js'
@@ -227,7 +344,9 @@ const appVersion = __APP_VERSION__
 // 状态与 DOM 着色都收敛在 src/custom/useTheme.js（模块级单例），这里只取用。
 // 兜底初值是有意义的：万一 provide 链断了，界面仍然可读，而不是整个不渲染。
 let isDark = ref(false)
-let mode = ref('auto'), setMode = () => {}, modeText = ref('跟随系统')
+let mode = ref('auto'),
+  setMode = () => {},
+  modeText = ref('跟随系统')
 try {
   const theme = inject('theme')
   if (theme) {
@@ -274,7 +393,10 @@ async function navigateSearch(target) {
   cancelSearchFocus = focusSearchField(document.querySelector('.dsh-main'), String(target.query?.focus || ''))
 }
 function searchHotkey(event) {
-  if (shouldOpenConfigSearch(event)) { event.preventDefault(); searchRef.value?.open() }
+  if (shouldOpenConfigSearch(event)) {
+    event.preventDefault()
+    searchRef.value?.open()
+  }
 }
 window.addEventListener('keydown', searchHotkey)
 
@@ -298,24 +420,52 @@ const leaveConfig = useConfigLeaveStore()
 const saveBarRef = ref(null)
 const motorTestState = ref({ active: false, uncertain: false })
 provide('motorTestSafety', motorTestState)
-function updateMotorTestState(state) { motorTestState.value = { ...state } }
-watch(connected, value => {
+function updateMotorTestState(state) {
+  motorTestState.value = { ...state }
+}
+watch(connected, (value) => {
   if (!value && motorTestState.value.active) motorTestState.value = { active: false, uncertain: true }
 })
 async function confirmPhysicalStop() {
   try {
-    await ElMessageBox.confirm('请确认已物理断开电机动力且所有电机停止。此确认只是操作者声明，不是飞控回读证据。', '确认物理停机', { type: 'warning', confirmButtonText: '已断动力并停止', cancelButtonText: '尚未确认' })
+    await ElMessageBox.confirm(
+      '请确认已物理断开电机动力且所有电机停止。此确认只是操作者声明，不是飞控回读证据。',
+      '确认物理停机',
+      { type: 'warning', confirmButtonText: '已断动力并停止', cancelButtonText: '尚未确认' }
+    )
     motorTestState.value = { active: false, uncertain: false }
-  } catch { /* 未确认时继续保持红色提示 */ }
+  } catch {
+    /* 未确认时继续保持红色提示 */
+  }
 }
-const editPageNames = { '/power': '电池', '/failsafe': '失控保护', '/pid': 'PID 整定', '/rc': '接收机', '/sensor': '传感器', '/port': '端口配置', '/parameter': '参数配置', '/motor': '电机' }
-watch(() => router.currentRoute.value.path, path => fcConfig.setEditSource(editPageNames[path] || '其他配置'), { immediate: true, flush: 'sync' })
+const editPageNames = {
+  '/power': '电池',
+  '/failsafe': '失控保护',
+  '/pid': 'PID 整定',
+  '/rc': '接收机',
+  '/sensor': '传感器',
+  '/port': '端口配置',
+  '/parameter': '参数配置',
+  '/motor': '电机',
+}
+watch(
+  () => router.currentRoute.value.path,
+  (path) => fcConfig.setEditSource(editPageNames[path] || '其他配置'),
+  { immediate: true, flush: 'sync' }
+)
 function discardAndLeave() {
-  try { fcConfig.discardAll(); leaveConfig.settle(true) }
-  catch (error) { ElMessage.error(error?.message || '无法丢弃改动') }
+  try {
+    fcConfig.discardAll()
+    leaveConfig.settle(true)
+  } catch (error) {
+    ElMessage.error(error?.message || '无法丢弃改动')
+  }
 }
 function reviewAndLeave() {
-  if (!saveBarRef.value) { leaveConfig.settle(false); return }
+  if (!saveBarRef.value) {
+    leaveConfig.settle(false)
+    return
+  }
   leaveConfig.reviewing()
   saveBarRef.value.save()
 }
@@ -324,7 +474,9 @@ function finishSaveAndLeave() {
   if (!fcConfig.hasChanges && !fcConfig.busy) leaveConfig.settle(true)
 }
 onBeforeUnmount(() => leaveConfig.settle(false))
-watch(connected, value => { if (!value && !mav.reconnecting.value) leaveConfig.settle(false) })
+watch(connected, (value) => {
+  if (!value && !mav.reconnecting.value) leaveConfig.settle(false)
+})
 
 /* ============ 路由门禁 ============ */
 router.beforeEach((to) => {
@@ -398,8 +550,11 @@ const batteryTag = computed(() => {
   }
 })
 
-const gpsTitle = computed(() => `定位：${data.gps.fixLabel} · HDOP ${data.gps.hdop.toFixed(1)} · `
-  + `卫星 ${data.gps.satellitesVisible} · 海拔 ${data.gps.alt.toFixed(1)}m · 相对 ${data.gps.relAlt.toFixed(1)}m`)
+const gpsTitle = computed(
+  () =>
+    `定位：${data.gps.fixLabel} · HDOP ${data.gps.hdop.toFixed(1)} · ` +
+    `卫星 ${data.gps.satellitesVisible} · 海拔 ${data.gps.alt.toFixed(1)}m · 相对 ${data.gps.relAlt.toFixed(1)}m`
+)
 
 const lastStatus = computed(() => data.statusLogs[data.statusLogs.length - 1] || null)
 
@@ -411,8 +566,12 @@ const rxStallText = computed(() => {
   return age >= 2000 ? `RX 停更 ${(age / 1000).toFixed(1)}s` : 'RX 接收中'
 })
 async function reconnectPrevious() {
-  try { await mav.reconnectLast() }
-  catch (error) { ElMessage.warning(error?.message || '重连失败，请重新选择串口'); connectDialog.value = true }
+  try {
+    await mav.reconnectLast()
+  } catch (error) {
+    ElMessage.warning(error?.message || '重连失败，请重新选择串口')
+    connectDialog.value = true
+  }
 }
 const rxRate = ref('-- 帧/秒')
 const crcAlarm = ref(false)
@@ -426,7 +585,7 @@ const ticker = setInterval(() => {
     rxRate.value = `${Math.max(0, Math.round((n - ratePrev.n) / dt))} 帧/秒`
     const frames = Math.max(0, stats.frames - crcPrev.frames)
     const errors = Math.max(0, stats.crcErrors - crcPrev.errors)
-    crcAlarm.value = connected.value && frames + errors >= 20 && errors / (frames + errors) > .05
+    crcAlarm.value = connected.value && frames + errors >= 20 && errors / (frames + errors) > 0.05
     crcPrev = { frames: stats.frames, errors: stats.crcErrors }
     ratePrev = { n, t: nowTick.value }
   }
@@ -438,9 +597,21 @@ const linkWarn = computed(() => {
   if (deviceState.phase === 'error') return deviceState.error?.message || '链路错误'
   return ''
 })
-const contextState = computed(() => deviceState.phase === 'online' ? 'live' : deviceState.phase === 'stale' || deviceState.phase === 'error' ? 'danger' : 'unknown')
-const deviceIdentityText = computed(() => deviceState.identity.detected ? `SYS ${deviceState.identity.sysid} / COMP ${deviceState.identity.compid}` : '设备未识别')
-const heartbeatContext = computed(() => deviceState.heartbeat.ageMs == null ? '心跳 —' : `心跳 ${Math.max(0, Math.round(deviceState.heartbeat.ageMs))} ms 前`)
+const contextState = computed(() =>
+  deviceState.phase === 'online'
+    ? 'live'
+    : deviceState.phase === 'stale' || deviceState.phase === 'error'
+      ? 'danger'
+      : 'unknown'
+)
+const deviceIdentityText = computed(() =>
+  deviceState.identity.detected
+    ? `SYS ${deviceState.identity.sysid} / COMP ${deviceState.identity.compid}`
+    : '设备未识别'
+)
+const heartbeatContext = computed(() =>
+  deviceState.heartbeat.ageMs == null ? '心跳 —' : `心跳 ${Math.max(0, Math.round(deviceState.heartbeat.ageMs))} ms 前`
+)
 
 /* ============ 菜单 ============ */
 const menuList = [
@@ -448,16 +619,16 @@ const menuList = [
   { path: '/preflight', label: '准备飞行' },
   { path: '/power', label: '电池' },
   { path: '/failsafe', label: '失控保护' },
-  { path: '/sensor',    label: '传感器' },
-  { path: '/port',      label: '端口配置' },
-  { path: '/rc',        label: '接收机' },
-  { path: '/pid',       label: 'PID调参' },
-  { path: '/motor',     label: '电机' },
+  { path: '/sensor', label: '传感器' },
+  { path: '/port', label: '端口配置' },
+  { path: '/rc', label: '接收机' },
+  { path: '/pid', label: 'PID调参' },
+  { path: '/motor', label: '电机' },
   { path: '/presets', label: '预设 · Beta' },
   { path: '/parameter', label: '参数' },
-  { path: '/cli',       label: '控制台' },
-  { path: '/ftp',       label: '文件' },
-  { path: '/monitor',   label: '监控' },
+  { path: '/cli', label: '控制台' },
+  { path: '/ftp', label: '文件' },
+  { path: '/monitor', label: '监控' },
 ]
 const visibleMenu = computed(() => menuList)
 
@@ -483,18 +654,29 @@ const statusText = computed(() => {
   if (mav.reconnecting.value) return `重启重连 · ${mav.reconnectStatus.value}`
   if (connecting.value) return '连接中…'
   if (deviceState.phase === 'serial-open') return '串口已打开 · 等待心跳'
-  if (deviceState.phase === 'online') return `已连接 · SYS ${deviceState.identity.sysid}/COMP ${deviceState.identity.compid}`
+  if (deviceState.phase === 'online')
+    return `已连接 · SYS ${deviceState.identity.sysid}/COMP ${deviceState.identity.compid}`
   if (deviceState.phase === 'stale') return '链路过期 · 禁止操作'
   if (deviceState.phase === 'error') return deviceState.error?.message || String(error.value || '链路错误')
   return '等待连接'
 })
 const onHomeRoute = computed(() => router.currentRoute.value.path === '/')
-const onHomeWorkspace = computed(() => ['/', '/environment', '/log', '/firmware', '/setting'].includes(router.currentRoute.value.path))
-watch(() => deviceState.phase, (value, oldValue) => {
-  if (mav.reconnecting.value || mav.firmwareExclusive.value) return
-  if (value === 'online' && oldValue !== 'online' && onHomeRoute.value) router.push('/dashboard')
-  if ((value === 'idle' || value === 'stale' || value === 'error') && oldValue === 'online' && router.currentRoute.value.path !== '/') router.push('/')
-})
+const onHomeWorkspace = computed(() =>
+  ['/', '/environment', '/log', '/firmware', '/setting'].includes(router.currentRoute.value.path)
+)
+watch(
+  () => deviceState.phase,
+  (value, oldValue) => {
+    if (mav.reconnecting.value || mav.firmwareExclusive.value) return
+    if (value === 'online' && oldValue !== 'online' && onHomeRoute.value) router.push('/dashboard')
+    if (
+      (value === 'idle' || value === 'stale' || value === 'error') &&
+      oldValue === 'online' &&
+      router.currentRoute.value.path !== '/'
+    )
+      router.push('/')
+  }
+)
 
 async function handleConnect() {
   try {
@@ -510,6 +692,19 @@ async function handleConnect() {
 function quickFtp() {
   // 跳转到 FTP 页面
   router.push('/ftp')
+}
+
+/**
+ * 从告警条目跳到「准备飞行」检查页。
+ *
+ * 为什么单独成一个方法，而不是写在模板的 @click 里：这里本来就是两句——先跳转、再关抽屉。
+ * 原先靠内联语句 + 逗号/分号分隔，而 prettier 会把内联的多语句表达式拆成换行并丢掉分隔符，
+ * 结果是模板编译直接报 "Unexpected token, expected ','"（已验证）。放在 script 里既不受
+ * 格式化影响，也顺带把「跳转 + 关抽屉必须成对发生」这条意图写清楚了。
+ */
+function goPreflight() {
+  router.push('/preflight')
+  alertOpen.value = false
 }
 
 /* ============ 生命周期 ============ */
@@ -586,10 +781,22 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-.status-item { display: inline-flex; align-items: center; }
-.tip { color: var(--dsh-text-3); font-size: var(--dsh-font-sm); margin-left: 4px; }
+.status-item {
+  display: inline-flex;
+  align-items: center;
+}
+.tip {
+  color: var(--dsh-text-3);
+  font-size: var(--dsh-font-sm);
+  margin-left: 4px;
+}
 /* 飞控告警可能很长，超出就截断，完整内容看 title */
-.status-msg { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.status-msg {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 /* ─── 连接状态：一颗状态点承担颜色语义，文字只说事实 ─── */
 .conn-text {
@@ -609,9 +816,15 @@ onBeforeUnmount(() => {
   background-color: var(--dsh-placeholder);
 }
 
-.conn-text[data-state='ok'] .dsh-dot { background-color: var(--dsh-success); }
-.conn-text[data-state='connecting'] .dsh-dot { background-color: var(--dsh-warning); }
-.conn-text[data-state='error'] .dsh-dot { background-color: var(--dsh-danger-vivid); }
+.conn-text[data-state='ok'] .dsh-dot {
+  background-color: var(--dsh-success);
+}
+.conn-text[data-state='connecting'] .dsh-dot {
+  background-color: var(--dsh-warning);
+}
+.conn-text[data-state='error'] .dsh-dot {
+  background-color: var(--dsh-danger-vivid);
+}
 
 /* ─── 三态主题开关 ─── */
 .dsh-theme-switch {
@@ -636,10 +849,15 @@ onBeforeUnmount(() => {
   background-color: transparent;
   color: var(--dsh-text-3);
   cursor: pointer;
-  transition: background-color var(--dsh-transition), color var(--dsh-transition);
+  transition:
+    background-color var(--dsh-transition),
+    color var(--dsh-transition);
 }
 
-.dsh-theme-btn:hover { color: var(--dsh-text-1); background-color: var(--dsh-hover); }
+.dsh-theme-btn:hover {
+  color: var(--dsh-text-1);
+  background-color: var(--dsh-hover);
+}
 
 .dsh-theme-btn.is-active {
   /* 当前档：亮蓝填充 + 填充字色，跟主按钮同一条决定（契约里记着日间 1.80:1）。
@@ -679,10 +897,15 @@ onBeforeUnmount(() => {
   text-decoration: none;
   white-space: nowrap;
   overflow: hidden;
-  transition: background-color var(--dsh-transition), color var(--dsh-transition);
+  transition:
+    background-color var(--dsh-transition),
+    color var(--dsh-transition);
 }
 
-.dsh-nav-item:hover { background-color: var(--dsh-hover); color: var(--dsh-text-1); }
+.dsh-nav-item:hover {
+  background-color: var(--dsh-hover);
+  color: var(--dsh-text-1);
+}
 
 .dsh-nav-item.is-active {
   background-color: var(--dsh-accent-soft);
@@ -701,8 +924,16 @@ onBeforeUnmount(() => {
   background-color: var(--dsh-accent);
 }
 
-.dsh-nav-icon { flex: none; opacity: 0.9; }
-.dsh-nav-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.dsh-nav-icon {
+  flex: none;
+  opacity: 0.9;
+}
+.dsh-nav-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 /* ─── 主区与页脚 ─── */
 .dsh-main {
@@ -721,7 +952,9 @@ onBeforeUnmount(() => {
   line-height: 1.2;
 }
 
-.dsh-foot-row { height: 100%; }
+.dsh-foot-row {
+  height: 100%;
+}
 
 .dsh-foot-left {
   display: flex;
@@ -732,8 +965,25 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
-.dsh-foot-right { display:flex; align-items:center; justify-content:flex-end; gap:10px; min-width:0; overflow:visible; padding-left:10px; }
-.dsh-foot-right .save-bar { width:100%; }
-.dsh-foot-right .save-bar { flex:0 1 auto; min-width:0; }
-.foot-stat { color: var(--dsh-text-3); font-size: var(--dsh-font-sm); white-space:nowrap; }
+.dsh-foot-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+  overflow: visible;
+  padding-left: 10px;
+}
+.dsh-foot-right .save-bar {
+  width: 100%;
+}
+.dsh-foot-right .save-bar {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.foot-stat {
+  color: var(--dsh-text-3);
+  font-size: var(--dsh-font-sm);
+  white-space: nowrap;
+}
 </style>

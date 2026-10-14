@@ -56,7 +56,13 @@ export function nextMode(mode) {
 /** #rgb / #rrggbb → {r,g,b}（0~255）。解析不了就抛，不做静默兜底。 */
 export function hexToRgb(hex) {
   const h = String(hex).trim().replace(/^#/, '')
-  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h
+  const full =
+    h.length === 3
+      ? h
+          .split('')
+          .map((c) => c + c)
+          .join('')
+      : h
   if (!/^[0-9a-fA-F]{6}$/.test(full)) throw new Error(`不是十六进制颜色：${hex}`)
   return {
     r: parseInt(full.slice(0, 2), 16),
@@ -151,16 +157,46 @@ export const CONTRAST_CONTRACT = [
   { mode: 'light', fg: 'text1', bg: 'surface', min: 4.5, why: '卡片上的正文' },
   { mode: 'light', fg: 'text2', bg: 'surface', min: 4.5, why: '次级说明文字' },
   { mode: 'light', fg: 'text3', bg: 'surface', min: 4.5, why: '辅助文字（表头、单位）' },
-  { mode: 'light', fg: 'accentInk', bg: 'surface', min: 1.4, why: '链接/强调文字：业主选定就压品牌蓝（实测 1.90:1，不许偷偷改暗，要改就整体改 --dsh-accent-ink）' },
-  { mode: 'light', fg: 'accentInk', bg: 'accentSoft', min: 1.4, why: '强调文字压主色浅底（导航当前页、标签）：同上，实测 1.61:1' },
-  { mode: 'light', fg: 'accentDeep', bg: 'surface', min: 3.0, why: '焦点环/聚焦描边：浅底上必须看得见的结构线走加深档（5.45:1）' },
+  {
+    mode: 'light',
+    fg: 'accentInk',
+    bg: 'surface',
+    min: 1.4,
+    why: '链接/强调文字：业主选定就压品牌蓝（实测 1.90:1，不许偷偷改暗，要改就整体改 --dsh-accent-ink）',
+  },
+  {
+    mode: 'light',
+    fg: 'accentInk',
+    bg: 'accentSoft',
+    min: 1.4,
+    why: '强调文字压主色浅底（导航当前页、标签）：同上，实测 1.61:1',
+  },
+  {
+    mode: 'light',
+    fg: 'accentDeep',
+    bg: 'surface',
+    min: 3.0,
+    why: '焦点环/聚焦描边：浅底上必须看得见的结构线走加深档（5.45:1）',
+  },
   { mode: 'light', fg: 'accentDeep', bg: 'accentSoft', min: 3.0, why: '同一档结构线压浅蓝底（4.87:1）' },
   { mode: 'light', fg: 'success', bg: 'surface', min: 4.5, why: '成功标签' },
   { mode: 'light', fg: 'warning', bg: 'surface', min: 4.5, why: '待保存/警告标签' },
   { mode: 'light', fg: 'danger', bg: 'surface', min: 4.5, why: '错误与炸机级提示' },
-  { mode: 'light', fg: '#ffffff', bg: 'accentInk', min: 1.4, why: 'plain 悬停、effect=dark 标签、遗留填充按钮：白字压品牌蓝（1.80:1，与主按钮同一条决定）' },
+  {
+    mode: 'light',
+    fg: '#ffffff',
+    bg: 'accentInk',
+    min: 1.4,
+    why: 'plain 悬停、effect=dark 标签、遗留填充按钮：白字压品牌蓝（1.80:1，与主按钮同一条决定）',
+  },
   { mode: 'light', fg: '#ffffff', bg: 'danger', min: 4.5, why: '危险按钮：白字压在红上' },
-  { mode: 'light', fg: 'inkOnAccent', bg: 'accent', min: 4.5, why: '近墨压亮蓝（这条能力保留着：想救可读性就把 --dsh-ink-on-fill 换成它）' },
+  {
+    mode: 'light',
+    fg: 'inkOnAccent',
+    bg: 'accent',
+    min: 4.5,
+    why: '近墨压亮蓝（这条能力保留着：想救可读性就把 --dsh-ink-on-fill 换成它）',
+  },
   // 夜间：文字压在深蓝灰面上；主按钮反过来——亮蓝底 + 近墨字
   { mode: 'dark', fg: 'text1', bg: 'canvas', min: 4.5, why: '页面底上的正文' },
   { mode: 'dark', fg: 'text1', bg: 'surface', min: 4.5, why: '卡片上的正文' },
@@ -180,7 +216,13 @@ export const CONTRAST_CONTRACT = [
   // 以下三条是业主 2026-07-30 问答里定的观感：日间的彩色按钮要“亮蓝/亮黄 + 白字”。
   // 明知不过 AA（1.80 / 1.86），min 就按实测下界写、why 里写清是谁定的——
   // 记真实数字，后来人一眼能看出“这是批准过的权衡”，而不是有人手滑把主题色当文字色用了。
-  { mode: 'light', fg: '#ffffff', bg: 'accent', min: 1.4, why: '主按钮：白字压亮蓝（1.80:1，业主选定，字重 600 兜一点）' },
+  {
+    mode: 'light',
+    fg: '#ffffff',
+    bg: 'accent',
+    min: 1.4,
+    why: '主按钮：白字压亮蓝（1.80:1，业主选定，字重 600 兜一点）',
+  },
   { mode: 'light', fg: '#ffffff', bg: 'warningFill', min: 1.4, why: '警告按钮：白字压亮黄（1.86:1，同上）' },
   { mode: 'dark', fg: 'inkOnAccent', bg: 'warningFill', min: 4.5, why: '夜间警告按钮：近墨字压亮黄（9.86:1）' },
 ]
@@ -193,10 +235,16 @@ export function auditContrast(palette = PALETTE, contract = CONTRAST_CONTRACT) {
   const bad = []
   for (const c of contract) {
     const p = palette[c.mode]
-    if (!p) { bad.push({ ...c, ratio: 0, reason: `没有 ${c.mode} 这套调色板` }); continue }
+    if (!p) {
+      bad.push({ ...c, ratio: 0, reason: `没有 ${c.mode} 这套调色板` })
+      continue
+    }
     const fg = c.fg.startsWith('#') ? c.fg : p[c.fg]
     const bg = c.bg.startsWith('#') ? c.bg : p[c.bg]
-    if (!fg || !bg) { bad.push({ ...c, ratio: 0, reason: '色名不在调色板里' }); continue }
+    if (!fg || !bg) {
+      bad.push({ ...c, ratio: 0, reason: '色名不在调色板里' })
+      continue
+    }
     const ratio = contrastRatio(fg, bg)
     if (ratio < c.min) bad.push({ ...c, fg, bg, ratio, reason: `实测 ${ratio.toFixed(2)} < 要求 ${c.min}` })
   }

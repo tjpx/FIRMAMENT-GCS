@@ -32,8 +32,17 @@ export const PARAM_TYPE = {
 }
 
 export const PARAM_TYPE_TEXT = {
-  0: '未知', 1: 'uint8', 2: 'int8', 3: 'uint16', 4: 'int16',
-  5: 'uint32', 6: 'int32', 7: 'uint64', 8: 'int64', 9: 'float', 10: 'double',
+  0: '未知',
+  1: 'uint8',
+  2: 'int8',
+  3: 'uint16',
+  4: 'int16',
+  5: 'uint32',
+  6: 'int32',
+  7: 'uint64',
+  8: 'int64',
+  9: 'float',
+  10: 'double',
 }
 
 /** 位重解释只需要一个复用的 4 字节缓冲，避免每个参数都新建 typed array */
@@ -56,13 +65,20 @@ export function reinterpretInt(rawFloat, type) {
   f32[0] = rawFloat
 
   switch (type) {
-    case PARAM_TYPE.UINT8: return u8[0]
-    case PARAM_TYPE.INT8: return i8[0]
-    case PARAM_TYPE.UINT16: return u16[0]
-    case PARAM_TYPE.INT16: return i16[0]
-    case PARAM_TYPE.UINT32: return u32[0]
-    case PARAM_TYPE.INT32: return i32[0]
-    default: return null
+    case PARAM_TYPE.UINT8:
+      return u8[0]
+    case PARAM_TYPE.INT8:
+      return i8[0]
+    case PARAM_TYPE.UINT16:
+      return u16[0]
+    case PARAM_TYPE.INT16:
+      return i16[0]
+    case PARAM_TYPE.UINT32:
+      return u32[0]
+    case PARAM_TYPE.INT32:
+      return i32[0]
+    default:
+      return null
   }
 }
 
@@ -125,8 +141,14 @@ export function decodeParamValue(rawFloat, type) {
 
   if (typed === null) {
     return {
-      kind: 'int', value: f, float: f, typed: null, agrees: null,
-      encoding: null, reliable: false, note: '整数读法失败',
+      kind: 'int',
+      value: f,
+      float: f,
+      typed: null,
+      agrees: null,
+      encoding: null,
+      reliable: false,
+      note: '整数读法失败',
     }
   }
 
@@ -137,24 +159,39 @@ export function decodeParamValue(rawFloat, type) {
 
   if (agrees) {
     return {
-      kind: 'int', value: typed, float: f, typed, agrees: true,
-      encoding: 'float-numeric', reliable: true, note: '',
+      kind: 'int',
+      value: typed,
+      float: f,
+      typed,
+      agrees: true,
+      encoding: 'float-numeric',
+      reliable: true,
+      note: '',
     }
   }
 
   if (rawPacked) {
     return {
-      kind: 'int', value: typed, float: f, typed, agrees: false,
-      encoding: 'raw-packed', reliable: true,
+      kind: 'int',
+      value: typed,
+      float: f,
+      typed,
+      agrees: false,
+      encoding: 'raw-packed',
+      reliable: true,
       note: `按 ${PARAM_TYPE_TEXT[t]} 读回整数 ${typed}（float 读法 ${f} 是同一串字节的位模式）`,
     }
   }
 
   return {
-    kind: 'int', value: f, float: f, typed, agrees: false,
-    encoding: 'undetermined', reliable: false,
-    note: `两种读法分歧：float=${f}，${PARAM_TYPE_TEXT[t]}=${typed}；`
-        + '该参数的权威值以 param.xml 文件为准',
+    kind: 'int',
+    value: f,
+    float: f,
+    typed,
+    agrees: false,
+    encoding: 'undetermined',
+    reliable: false,
+    note: `两种读法分歧：float=${f}，${PARAM_TYPE_TEXT[t]}=${typed}；` + '该参数的权威值以 param.xml 文件为准',
   }
 }
 

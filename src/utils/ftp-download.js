@@ -15,8 +15,6 @@
  *   2) 收尾必须按飞控给出的 st_size 逐字节核对，缺一个字节就报错，绝不"按已读长度结束"。
  */
 
-export const FTP_CHUNK = 239
-
 /**
  * 建立一次下载的状态。expectedSize 必须来自飞控（OPEN 的应答或 LIST 的 st_size），
  * 不接受"不知道多大就先下着看"——那正是截断能被吞掉的前提。
@@ -24,8 +22,8 @@ export const FTP_CHUNK = 239
 export function createDownloadState({ expectedSize, name = '' } = {}) {
   if (!Number.isInteger(expectedSize) || expectedSize < 0) {
     throw new Error(
-        `下载${name ? ` ${name}` : ''}需要飞控上报的文件大小（OPEN/LIST 的 st_size），`
-        + '不能靠 EOF 猜长度——猜就会把读失败当成读完成'
+      `下载${name ? ` ${name}` : ''}需要飞控上报的文件大小（OPEN/LIST 的 st_size），` +
+        '不能靠 EOF 猜长度——猜就会把读失败当成读完成'
     )
   }
 
@@ -56,9 +54,7 @@ export function acceptBurstPacket(state, packet) {
   }
 
   // 有效长度：以包头声明的 size 为准，同时不超过 data 实长和文件尾
-  let len = Number.isFinite(declared) && declared >= 0
-      ? Math.min(declared, data.length)
-      : data.length
+  let len = Number.isFinite(declared) && declared >= 0 ? Math.min(declared, data.length) : data.length
 
   if (offset + len > state.expectedSize) {
     const over = offset + len - state.expectedSize
@@ -145,14 +141,12 @@ export function assertDownloadComplete(state, label) {
 
   if (s.ok) return s
 
-  const ranges = s.missingRanges
-      .map(([a, b]) => `${a}-${b}`)
-      .join(', ')
+  const ranges = s.missingRanges.map(([a, b]) => `${a}-${b}`).join(', ')
 
   const err = new Error(
-      `${who} 下载不完整：飞控报告 ${s.expected} 字节，只拿到 ${s.received} 字节，`
-      + `缺 ${s.missing} 字节${ranges ? `（缺口 ${ranges}${s.missingRanges.length >= 4 ? '…' : ''}）` : ''}。`
-      + '禁止把这份内容当作完整文件使用，更不能回传覆盖。'
+    `${who} 下载不完整：飞控报告 ${s.expected} 字节，只拿到 ${s.received} 字节，` +
+      `缺 ${s.missing} 字节${ranges ? `（缺口 ${ranges}${s.missingRanges.length >= 4 ? '…' : ''}）` : ''}。` +
+      '禁止把这份内容当作完整文件使用，更不能回传覆盖。'
   )
   err.code = 'IncompleteDownload'
   err.expected = s.expected

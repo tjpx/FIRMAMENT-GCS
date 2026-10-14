@@ -85,9 +85,9 @@ export function attitudeFromQuaternion(raw) {
   const e = quatToEulerRad(composed || q)
   if (!e) return null
   return {
-    roll: e.roll * 180 / Math.PI,
-    pitch: e.pitch * 180 / Math.PI,
-    yaw: e.yaw * 180 / Math.PI,
+    roll: (e.roll * 180) / Math.PI,
+    pitch: (e.pitch * 180) / Math.PI,
+    yaw: (e.yaw * 180) / Math.PI,
     quat: q,
     offsetApplied: !!hasOffset,
   }

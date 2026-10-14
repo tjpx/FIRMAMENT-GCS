@@ -91,7 +91,8 @@ export function evaluateCalibrationRead(readings, options = {}) {
   for (const r of list) {
     const name = typeof r?.name === 'string' ? r.name : ''
     if (!name) continue
-    if (typeof r?.value === 'number' && Number.isFinite(r.value)) byName.set(name, { name, value: r.value, ok: r.ok !== false })
+    if (typeof r?.value === 'number' && Number.isFinite(r.value))
+      byName.set(name, { name, value: r.value, ok: r.ok !== false })
     else byName.set(name, { name, value: null, ok: false, reason: r?.reason || 'no-echo' })
   }
 
@@ -155,9 +156,12 @@ export function calibrationReadSummary(evidence) {
     const g = sensors[s] || {}
     const label = CALIBRATION_SENSOR_LABEL[s] || s
     if (!g.total) return `${label} 无字段`
-    const state = g.read !== g.total ? `只读到 ${g.read}/${g.total} 项（未验证）`
-      : g.changed?.length ? `偏离默认（${g.changed.length} 项）`
-        : '等于出厂默认'
+    const state =
+      g.read !== g.total
+        ? `只读到 ${g.read}/${g.total} 项（未验证）`
+        : g.changed?.length
+          ? `偏离默认（${g.changed.length} 项）`
+          : '等于出厂默认'
     return `${label} ${state}`
   })
   if (!evidence.complete) {
@@ -165,7 +169,9 @@ export function calibrationReadSummary(evidence) {
     return `四类校准参数读取不完整：${parts.join('；')}。缺 ${miss.slice(0, 3).join('、')}${miss.length > 3 ? ' 等' : ''} 未回包，本次不判通过也不判未校准。`
   }
   if (evidence.verified) {
-    const who = CALIBRATION_SENSORS.filter((s) => sensors[s]?.changed.length).map((s) => CALIBRATION_SENSOR_LABEL[s]).join('、')
+    const who = CALIBRATION_SENSORS.filter((s) => sensors[s]?.changed.length)
+      .map((s) => CALIBRATION_SENSOR_LABEL[s])
+      .join('、')
     return `${parts.join('；')}。${who}都有偏离出厂默认的字段。`
   }
   const missing = (evidence.missingCalibrationLabels || []).join('、')

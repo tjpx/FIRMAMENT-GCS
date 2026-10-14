@@ -8,14 +8,7 @@
 //   color-scheme            给浏览器原生控件、滚动条、日期选择器
 // 默认 auto 跟随系统，一旦用户手动点过就固定下来（存 localStorage），这是问答里定的行为。
 import { computed, ref, watchEffect } from 'vue'
-import {
-  LEGACY_THEME_KEYS,
-  MODE_LABEL,
-  THEME_STORAGE_KEY,
-  nextMode,
-  normalizeMode,
-  resolveMode,
-} from '../utils/theme'
+import { LEGACY_THEME_KEYS, MODE_LABEL, THEME_STORAGE_KEY, nextMode, normalizeMode, resolveMode } from '../utils/theme'
 
 /** 读系统偏好。非浏览器环境（自测直接 import 时）没有 matchMedia，按日间兜底。 */
 function systemPrefersDark() {
@@ -51,7 +44,9 @@ let media = null
 let onSystemChange = null
 if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
   media = window.matchMedia('(prefers-color-scheme: dark)')
-  onSystemChange = (e) => { systemDark.value = e.matches }
+  onSystemChange = (e) => {
+    systemDark.value = e.matches
+  }
   media.addEventListener('change', onSystemChange)
 }
 
@@ -79,15 +74,16 @@ watchEffect(() => {
 export function useTheme() {
   const isDark = computed(() => resolved.value === 'dark')
   const modeText = computed(() => MODE_LABEL[mode.value])
-  const setMode = (m) => { mode.value = normalizeMode(m) }
-  const cycleMode = () => { mode.value = nextMode(mode.value) }
+  const setMode = (m) => {
+    mode.value = normalizeMode(m)
+  }
+  const cycleMode = () => {
+    mode.value = nextMode(mode.value)
+  }
   // 兼容旧的两态调用点：不管当前是 auto 还是锁定态，都翻转成"手动锁定的另一态"，
   // 语义和以前的 日↔夜 一致，只是从此不再跟着系统跑（用户明确点过就听用户的）。
-  const toggleTheme = () => { mode.value = isDark.value ? 'light' : 'dark' }
+  const toggleTheme = () => {
+    mode.value = isDark.value ? 'light' : 'dark'
+  }
   return { mode, resolved, isDark, modeText, setMode, cycleMode, toggleTheme }
-}
-
-/** 组件里想只读不写时用它，避免各页自己拼文案。 */
-export function useThemeView() {
-  return { mode, isDark: computed(() => resolved.value === 'dark'), modeText }
 }
