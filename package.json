@@ -8,7 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "gen:mavlink": "node scripts/gen-mavlink-table.mjs",
-    "selftest": "node scripts/selftest.mjs"
+    "selftest": "node scripts/selftest.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
@@ -25,6 +27,7 @@
     "@types/w3c-web-serial": "^1.0.8",
     "@vitejs/plugin-vue": "^6.0.8",
     "@vue/compiler-sfc": "^3.5.40",
+    "prettier": "^3.9.10",
     "vite": "^8.2.0"
   }
 }

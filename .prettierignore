@@ -1,0 +1,13 @@
+# 构建产物与依赖（机器生成，格式无意义）
+node_modules/
+dist/
+package-lock.json
+
+# 协议表由 scripts/gen-mavlink-table.mjs 用 JSON.stringify 生成：
+# 单行大表是该生成器的输出形态，重排它只会让每次重新生成都产生全文件 diff。
+# 想改它的可读性，请改生成器，而不是格式化它的输出。
+src/protocol/mavlink-table.generated.js
+
+# 离线取证的日志
+*.log
+calibration-selftest.log

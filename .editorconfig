@@ -1,0 +1,16 @@
+# 编辑器统一约定（与 .prettierrc.json 对齐，避免"我一保存就全文件重排"）
+# 行宽 120、2 空格、LF。
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = true
+
+[*.md]
+# Markdown 里行尾两个空格是硬换行，不能被编辑器吃掉
+trim_trailing_whitespace = false
+
+[*.{yml,yaml}]
+indent_size = 2

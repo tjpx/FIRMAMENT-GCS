@@ -1,0 +1,15 @@
+# 行尾归一：仓库统一 LF，避免 Windows 上 checkout 成 CRLF 后 git status 满屏改动。
+# 与 .prettierrc.json 的 "endOfLine": "lf" 配套。
+* text=auto eol=lf
+
+# 二进制文件不参与行尾转换
+*.zip binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
