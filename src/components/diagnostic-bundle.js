@@ -1,3 +1,0 @@
-import { operationHistory } from './operation-history.js'
-export function buildDiagnosticBundle({ mav, fc, alerts = [] } = {}) { return { exportedAt: new Date().toISOString(), device: mav?.deviceState || null, vehicle: mav?.vehicle || null, linkStats: mav?.stats || null, alerts, operationHistory: operationHistory(), config: { loaded: !!fc?.loaded, dirty: !!fc?.hasChanges, changes: fc?.changeList || [] } } }
-export function downloadDiagnosticBundle(bundle, filename = `fmt-diagnostic-${Date.now()}.json`) { const url = URL.createObjectURL(new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' })); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); setTimeout(() => URL.revokeObjectURL(url), 500) }
